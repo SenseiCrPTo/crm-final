@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
-const { startBot } = require('./bot.js'); // ++ ДОБАВЛЕНО: Импортируем функцию запуска бота
+const { startBot } = require('./bot.js');
 
 const app = express();
 app.use(cors());
@@ -60,13 +60,34 @@ app.post('/api/employees', async (req, res) => {
         res.status(201).json(toCamelCase(result.rows)[0]);
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
+
+// --- ИЗМЕНЕНИЕ ЗДЕСЬ: ДОБАВЛЕНА ОТЛАДКА ---
 app.post('/api/clients', async (req, res) => {
+    console.log('[API LOG] Получен запрос на создание клиента. Тело запроса:', req.body);
     try {
         const { companyName, contactPerson, contacts, region, city, status } = req.body;
-        const result = await pool.query('INSERT INTO clients (company_name, contact_person, contacts, region, city, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [companyName, contactPerson, contacts, region, city, status]);
+
+        // Проверка на наличие обязательных полей
+        if (!companyName || !contactPerson) {
+            console.error('[API ERROR] Ошибка валидации: Отсутствуют обязательные поля (companyName или contactPerson).');
+            return res.status(400).json({ error: 'Отсутствуют обязательные поля' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO clients (company_name, contact_person, contacts, region, city, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [companyName, contactPerson, contacts, region, city, status]
+        );
+        
+        console.log('[API LOG] Клиент успешно создан в БД:', result.rows[0]);
         res.status(201).json(toCamelCase(result.rows)[0]);
-    } catch (error) { res.status(500).json({ error: error.message }); }
+
+    } catch (error) {
+        console.error('[API ERROR] Критическая ошибка при создании клиента в БД:', error);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера при работе с базой данных.' });
+    }
 });
+// --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
 app.post('/api/requests', async (req, res) => {
     try {
         const { clientId, managerId, engineerId, city, address, amount, cost, deadline, info, status, activityLog } = req.body;
@@ -133,5 +154,5 @@ app.listen(PORT, () => {
     console.log(`Сервер успешно запущен на порту ${PORT}`);
 });
 
-// ++ ДОБАВЛЕНО: Запускаем бота после того, как сервер начал работать
+// Запускаем бота после того, как сервер начал работать
 startBot();
