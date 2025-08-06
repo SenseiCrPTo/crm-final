@@ -1,4 +1,5 @@
-const API_BASE_URL = '/api'; // ИЗМЕНЕНИЕ ЗДЕСЬ
+// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Указан полный URL вашего API на Railway ---
+const API_BASE_URL = 'https://crm-final-production-4e2f.up.railway.app/api';
 
 export const data = {
     requests: [],
@@ -17,12 +18,18 @@ export async function loadData() {
             fetch(`${API_BASE_URL}/employees`),
             fetch(`${API_BASE_URL}/clients`)
         ]);
+
+        if (!requestsRes.ok || !departmentsRes.ok || !employeesRes.ok || !clientsRes.ok) {
+            throw new Error('Ошибка сети при загрузке начальных данных');
+        }
+
         data.requests = await requestsRes.json();
         data.departments = await departmentsRes.json();
         data.employees = await employeesRes.json();
         data.clients = await clientsRes.json();
     } catch (error) {
-        console.error('Ошибка при загрузке данных с сервера:', error);
+        console.error('Критическая ошибка при загрузке данных с сервера:', error);
+        // Можно добавить уведомление для пользователя здесь
     }
 }
 
@@ -42,8 +49,8 @@ async function apiCall(endpoint, method = 'GET', body = null) {
         }
         return await response.json();
     } catch (error) {
-        console.error(`Ошибка при запросе к ${endpoint}:`, error);
-        throw error;
+        console.error(`Ошибка при API-запросе к ${endpoint}:`, error);
+        throw error; // Важно "пробросить" ошибку дальше, чтобы ее можно было обработать
     }
 }
 
