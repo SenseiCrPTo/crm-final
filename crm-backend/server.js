@@ -3,17 +3,19 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const { startBot } = require('./bot.js'); // ++ ДОБАВЛЕНО: Импортируем функцию запуска бота
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-// Путь теперь прямой, так как папка Frontend находится внутри crm-backend
-app.use(express.static(path.join(__dirname, 'Frontend')));
-// --- КОНЕЦ ИЗМЕНЕНИЯ ---
+// Путь к папке Frontend
+const frontendPath = path.join(__dirname, 'Frontend');
 
+// Обслуживание статических файлов
+app.use(express.static(frontendPath));
 
+// --- API МАРШРУТЫ ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -29,8 +31,6 @@ const toCamelCase = (rows) => {
         return newRow;
     });
 };
-
-// --- API МАРШРУТЫ ---
 
 // GET (Получить списки)
 app.get('/api/:resource', async (req, res) => {
@@ -122,7 +122,16 @@ app.patch('/api/:resource/:id', async (req, res) => {
     }
 });
 
+// Этот обработчик должен быть в конце
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Сервер успешно запущен на порту ${PORT}`);
 });
+
+// ++ ДОБАВЛЕНО: Запускаем бота после того, как сервер начал работать
+startBot();
