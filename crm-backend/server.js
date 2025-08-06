@@ -146,4 +146,4 @@ app.listen(PORT, () => {
 });
 
 // Запускаем бота
-startBot();
+startBot1();
