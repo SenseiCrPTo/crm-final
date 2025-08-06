@@ -1,25 +1,25 @@
 // Импортируем библиотеку для работы с Telegram
 const TelegramBot = require('node-telegram-bot-api');
-// Строка 'require(node-fetch)' была здесь и теперь удалена.
 
 // Функция для запуска бота
 function startBot() {
-    // Получаем токен из переменных окружения
+    // Получаем токен и URL из переменных окружения
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    if (!token) {
-        console.error('Ошибка: Токен для Telegram бота не найден! Добавьте TELEGRAM_BOT_TOKEN в переменные окружения.');
+    const apiUrl = process.env.RAILWAY_PUBLIC_DOMAIN; // Используем автоматическую переменную Railway
+
+    if (!token || !apiUrl) {
+        console.error('Ошибка: Необходимые переменные окружения (TELEGRAM_BOT_TOKEN или RAILWAY_PUBLIC_DOMAIN) не найдены!');
         return;
     }
 
-    // URL нашего API, который работает на Railway
-    // Убедитесь, что этот URL правильный для вашего проекта
-    const API_URL = 'https://crm-final-production.up.railway.app/api';
+    // Формируем полный URL для нашего API
+    const API_URL = `https://${apiUrl}/api`;
 
     const bot = new TelegramBot(token, { polling: true });
 
     const userSessions = {};
 
-    console.log('Телеграм-бот успешно запущен.');
+    console.log(`Телеграм-бот успешно запущен. API URL: ${API_URL}`);
 
     bot.onText(/\/start/, (msg) => {
         const chatId = msg.chat.id;
