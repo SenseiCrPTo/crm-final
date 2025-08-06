@@ -1,7 +1,6 @@
 // Импортируем библиотеку для работы с Telegram
 const TelegramBot = require('node-telegram-bot-api');
-// Импортируем библиотеку для отправки запросов на наш же сервер
-const fetch = require('node-fetch');
+// Строка 'require(node-fetch)' была здесь и теперь удалена.
 
 // Функция для запуска бота
 function startBot() {
@@ -13,40 +12,33 @@ function startBot() {
     }
 
     // URL нашего API, который работает на Railway
-    const API_URL = 'https://cooperative-amazement-production.up.railway.app/api';
+    // Убедитесь, что этот URL правильный для вашего проекта
+    const API_URL = 'https://crm-final-production.up.railway.app/api';
 
     const bot = new TelegramBot(token, { polling: true });
 
-    // Хранилище для данных, которые мы собираем от пользователя
-    // Ключ - это ID чата, значение - объект с данными
     const userSessions = {};
 
     console.log('Телеграм-бот успешно запущен.');
 
-    // Обработчик команды /start
     bot.onText(/\/start/, (msg) => {
         const chatId = msg.chat.id;
-        // Начинаем новую сессию для пользователя
         userSessions[chatId] = { step: 'companyName', clientData: {}, requestData: {} };
         bot.sendMessage(chatId, 'Здравствуйте! Давайте зарегистрируем вас как нового клиента. Введите название вашей компании:');
     });
 
-    // Обработчик всех текстовых сообщений
     bot.on('message', async (msg) => {
         const chatId = msg.chat.id;
         const text = msg.text;
 
-        // Игнорируем команду /start, так как у нее свой обработчик
         if (text === '/start') return;
 
         const session = userSessions[chatId];
-        // Если сессии нет, просим пользователя начать с команды /start
         if (!session) {
             bot.sendMessage(chatId, 'Пожалуйста, начните с отправки команды /start');
             return;
         }
 
-        // Машина состояний: в зависимости от текущего шага, выполняем разные действия
         switch (session.step) {
             case 'companyName':
                 session.clientData.companyName = text;
@@ -74,12 +66,11 @@ function startBot() {
 
             case 'city':
                 session.clientData.city = text;
-                session.clientData.status = 'Лид'; // Присваиваем статус "Лид"
+                session.clientData.status = 'Лид';
                 
                 bot.sendMessage(chatId, 'Регистрирую клиента...');
 
                 try {
-                    // Отправляем запрос на наш API для создания клиента
                     const response = await fetch(`${API_URL}/clients`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -91,20 +82,18 @@ function startBot() {
 
                     bot.sendMessage(chatId, `Клиент "${newClient.companyName}" успешно создан!`);
                     
-                    // Сохраняем ID нового клиента и переходим к созданию заявки
                     session.requestData.clientId = newClient.id;
-                    session.requestData.city = newClient.city; // Автоматически подставляем город
+                    session.requestData.city = newClient.city;
                     session.step = 'address';
                     bot.sendMessage(chatId, 'Теперь давайте создадим заявку. Введите адрес объекта:');
 
                 } catch (error) {
                     console.error('Ошибка при создании клиента:', error);
                     bot.sendMessage(chatId, 'Произошла ошибка при создании клиента. Попробуйте позже.');
-                    delete userSessions[chatId]; // Сбрасываем сессию
+                    delete userSessions[chatId];
                 }
                 break;
 
-            // --- Шаги для создания заявки ---
             case 'address':
                 session.requestData.address = text;
                 session.step = 'deadline';
@@ -119,12 +108,11 @@ function startBot() {
 
             case 'info':
                 session.requestData.info = text;
-                session.requestData.status = 'Новая заявка'; // Статус для новой заявки
+                session.requestData.status = 'Новая заявка';
 
                 bot.sendMessage(chatId, 'Создаю заявку...');
 
                 try {
-                    // Отправляем запрос на API для создания заявки
                      const response = await fetch(`${API_URL}/requests`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -140,12 +128,11 @@ function startBot() {
                     console.error('Ошибка при создании заявки:', error);
                     bot.sendMessage(chatId, 'Произошла ошибка при создании заявки. Попробуйте позже.');
                 } finally {
-                    delete userSessions[chatId]; // Завершаем и сбрасываем сессию
+                    delete userSessions[chatId];
                 }
                 break;
         }
     });
 }
 
-// Экспортируем функцию, чтобы ее можно было вызвать из server.js
 module.exports = { startBot };
