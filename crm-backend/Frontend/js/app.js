@@ -1,126 +1,138 @@
-import { data, loadData, createDepartment, createEmployee, createClient, createRequest, updateClient, updateEmployee, updateRequest } from './js/data-manager.js';
-import { renderPage, closePopup } from './js/ui-renderer.js';
+import * as api from './data-manager.js';
+import { renderPage, closePopup } from './ui-renderer.js';
 
 let currentPage = 'dashboard';
-let currentFilters = {};
+let currentOptions = {}; // Для хранения ID и другой информации
 
 /**
- * Перезагружает данные с сервера и перерисовывает текущую страницу.
- * Это центральная функция для обновления интерфейса.
+ * Центральная функция для обновления данных и перерисовки интерфейса.
  */
 async function reloadAndRender() {
-    try {
-        await loadData();
-        renderPage(currentPage, currentFilters);
-    } catch (error) {
-        console.error("Не удалось перезагрузить и отобразить данные:", error);
-        // Здесь можно показать пользователю уведомление об ошибке
-    }
+    await api.loadData();
+    renderPage(currentPage, currentOptions);
 }
 
 /**
- * Обрабатывает отправку всех форм создания сущностей (отдел, клиент и т.д.).
+ * Обрабатывает отправку форм СОЗДАНИЯ.
  */
-async function handleCreateFormSubmit(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = Object.fromEntries(new FormData(form).entries());
+async function handleCreateForm(form) {
     const entityType = form.dataset.entity;
-
-    // Преобразуем строковые ID в числа, где это необходимо
-    if (formData.parentId) formData.parentId = parseInt(formData.parentId, 10) || null;
-    if (formData.departmentId) formData.departmentId = parseInt(formData.departmentId, 10);
+    const formData = Object.fromEntries(new FormData(form));
+    
+    // Преобразование типов данных
+    if(formData.parentId) formData.parentId = formData.parentId ? parseInt(formData.parentId) : null;
     
     try {
-        let action;
         switch (entityType) {
             case 'department':
-                action = createDepartment(formData);
+                await api.createDepartment(formData);
                 currentPage = 'departments';
                 break;
-            case 'employee':
-                action = createEmployee(formData);
-                currentPage = 'employees';
-                break;
             case 'client':
-                action = createClient(formData);
+                await api.createClient(formData);
                 currentPage = 'clients';
                 break;
             case 'request':
-                 // Если выбран "новый клиент", сначала создаем его
+                // Логика создания нового клиента из формы заявки
                 if (formData.clientId === 'new') {
-                    const newClient = await createClient({ 
-                        companyName: formData.newClientCompanyName, 
+                    const newClient = await api.createClient({
+                        companyName: formData.newClientCompanyName,
                         contactPerson: formData.newClientContactPerson,
                         contacts: formData.newClientContacts,
-                        status: 'Лид' 
+                        status: 'Лид'
                     });
-                    formData.clientId = newClient.id; // Используем ID нового клиента
+                    formData.clientId = newClient.id;
                 }
-                
                 // Преобразуем числовые поля
-                formData.clientId = parseInt(formData.clientId, 10);
-                formData.managerId = parseInt(formData.managerId, 10);
-                formData.engineerId = parseInt(formData.engineerId, 10);
-                formData.amount = parseFloat(formData.amount) || 0;
-
-                // Добавляем запись в лог активности
-                formData.activityLog = [{
-                    timestamp: new Date().toISOString(),
-                    user: "Система",
-                    action: `Заявка создана. Статус: ${formData.status}.`
-                }];
-                action = createRequest(formData);
+                formData.clientId = parseInt(formData.clientId);
+                formData.managerId = parseInt(formData.managerId);
+                formData.engineerId = parseInt(formData.engineerId);
+                formData.amount = parseFloat(formData.amount);
+                
+                await api.createRequest(formData);
                 currentPage = 'requests';
                 break;
-            default:
-                throw new Error(`Неизвестный тип сущности: ${entityType}`);
         }
-
-        await action; // Выполняем действие (создание)
-        
         closePopup();
-        await reloadAndRender(); // Перезагружаем и перерисовываем
-
+        await reloadAndRender();
     } catch (error) {
         console.error(`Ошибка при создании ${entityType}:`, error);
+        alert(`Не удалось создать ${entityType}.`);
     }
 }
 
 /**
- * Обрабатывает навигацию по боковой панели.
+ * Обрабатывает отправку форм РЕДАКТИРОВАНИЯ.
  */
-function handleNavigation(event) {
-    const link = event.target.closest('a');
-    if (link && link.dataset.page) {
-        event.preventDefault();
-        currentPage = link.dataset.page;
-        currentFilters = {}; // Сбрасываем фильтры
-        renderPage(currentPage, currentFilters);
+async function handleEditForm(form) {
+    const entityType = form.dataset.entity;
+    const formData = Object.fromEntries(new FormData(form));
+    const id = parseInt(formData.id);
+
+    try {
+        switch (entityType) {
+            case 'client':
+                await api.updateClient(id, formData);
+                break;
+            // Добавьте другие кейсы по мере необходимости
+        }
+        await reloadAndRender();
+        alert(`${entityType} успешно обновлен!`);
+    } catch (error) {
+        console.error(`Ошибка при обновлении ${entityType}:`, error);
+        alert(`Не удалось обновить ${entityType}.`);
     }
 }
 
+
 /**
- * Инициализирует приложение, загружает данные и устанавливает обработчики событий.
+ * Инициализация приложения.
  */
 async function init() {
-    // Глобальные функции для вызова из HTML
-    window.openRequestDetails = (requestId) => {
-        currentPage = 'edit-request';
-        renderPage(currentPage, { requestId });
-    };
-
-    // Устанавливаем единый обработчик на все формы создания
-    document.addEventListener('submit', (event) => {
-        if (event.target.hasAttribute('data-entity')) {
-            handleCreateFormSubmit(event);
+    // Глобальный обработчик отправки форм
+    document.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const form = e.target;
+        if (form.dataset.entity && form.dataset.action === 'create') {
+            handleCreateForm(form);
+        }
+        if (form.dataset.entity && form.dataset.action === 'edit') {
+            handleEditForm(form);
         }
     });
 
-    // Обработчик навигации
-    document.querySelector('.sidebar').addEventListener('click', handleNavigation);
-    
-    // Первоначальная загрузка и отрисовка дашборда
+    // Глобальный обработчик кликов (для навигации и кнопок)
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+
+        // Навигация
+        const navLink = target.closest('a[data-page]');
+        if (navLink) {
+            e.preventDefault();
+            currentPage = navLink.dataset.page;
+            currentOptions = {};
+            renderPage(currentPage, currentOptions);
+        }
+
+        // Кнопки открытия форм создания
+        const createBtn = target.closest('button[data-action="create"]');
+        if (createBtn) {
+            currentPage = `create-${createBtn.dataset.entity}`;
+            currentOptions = {};
+            renderPage(currentPage);
+        }
+        
+        // Кнопки/ссылки для открытия деталей (редактирования)
+        const detailsLink = target.closest('[data-action="details"]');
+        if (detailsLink) {
+            e.preventDefault();
+            currentPage = `${detailsLink.dataset.entity}-details`;
+            currentOptions[`${detailsLink.dataset.entity}Id`] = parseInt(detailsLink.dataset.id);
+            renderPage(currentPage, currentOptions);
+        }
+    });
+
+    // Первоначальная загрузка
     currentPage = 'dashboard';
     await reloadAndRender();
 }

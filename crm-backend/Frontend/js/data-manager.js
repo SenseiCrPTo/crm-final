@@ -1,5 +1,4 @@
-// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Указан полный URL вашего API на Railway ---
-const API_BASE_URL = 'https://crm-final-production-4e2f.up.railway.app/api';
+const API_BASE_URL = '/api';
 
 export const data = {
     requests: [],
@@ -29,7 +28,6 @@ export async function loadData() {
         data.clients = await clientsRes.json();
     } catch (error) {
         console.error('Критическая ошибка при загрузке данных с сервера:', error);
-        // Можно добавить уведомление для пользователя здесь
     }
 }
 
@@ -47,10 +45,12 @@ async function apiCall(endpoint, method = 'GET', body = null) {
             const errorBody = await response.json();
             throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
         }
+        // Для запросов DELETE, где тело ответа может быть пустым
+        if (method === 'DELETE') return;
         return await response.json();
     } catch (error) {
         console.error(`Ошибка при API-запросе к ${endpoint}:`, error);
-        throw error; // Важно "пробросить" ошибку дальше, чтобы ее можно было обработать
+        throw error;
     }
 }
 
@@ -62,5 +62,6 @@ export const createRequest = (data) => apiCall('requests', 'POST', data);
 
 // Функции обновления
 export const updateClient = (id, data) => apiCall(`clients/${id}`, 'PATCH', data);
-export const updateEmployee = (id, data) => apiCall(`employees/${id}`, 'PATCH', data);
 export const updateRequest = (id, data) => apiCall(`requests/${id}`, 'PATCH', data);
+export const updateEmployee = (id, data) => apiCall(`employees/${id}`, 'PATCH', data);
+export const updateDepartment = (id, data) => apiCall(`departments/${id}`, 'PATCH', data);
