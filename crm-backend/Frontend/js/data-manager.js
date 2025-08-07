@@ -45,9 +45,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
             const errorBody = await response.json();
             throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
         }
-        // Для запросов DELETE, где тело ответа может быть пустым
-        if (method === 'DELETE') return;
-        return await response.json();
+        return response.status !== 204 ? await response.json() : null;
     } catch (error) {
         console.error(`Ошибка при API-запросе к ${endpoint}:`, error);
         throw error;

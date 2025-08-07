@@ -43,7 +43,7 @@ export function renderPage(pageId, contextId = null) {
             break;
         case 'departments':
             title = 'Отделы и сотрудники';
-            renderDepartmentsPage(pageContainer);
+            renderEmployeeListPage(pageContainer);
             break;
         case 'employee-details':
             renderEmployeeDetailsPage(pageContainer, contextId);
@@ -57,7 +57,6 @@ export function renderPage(pageId, contextId = null) {
             renderCreateEmployeePage(pageContainer);
             break;
         case 'documents':
-            title = 'Документы';
             renderDocuments(pageContainer);
             break;
         default:
@@ -66,7 +65,7 @@ export function renderPage(pageId, contextId = null) {
             renderDashboard(pageContainer);
     }
     
-    if (!['client-details', 'edit-request', 'employee-details'].includes(pageId)) {
+    if (pageId !== 'client-details' && pageId !== 'edit-request' && pageId !== 'employee-details') {
         pageTitle.textContent = title;
     }
     updateActiveNav(pageId);
@@ -135,7 +134,7 @@ function renderDashboard(container) {
                 <ul class="widget-list">
                     ${recentActivities.length > 0 ? recentActivities.map(log => `
                         <li class="widget-list-item">
-                            <a href="#" onclick="event.preventDefault(); window.openRequestDetails(${log.requestId})">${log.text || 'Действие без описания'}</a>
+                            <a href="#" onclick="event.preventDefault(); window.openRequestDetails(${log.requestId})">${log.text}</a>
                             <span class="meta">${new Date(log.timestamp).toLocaleString()}</span>
                         </li>
                     `).join('') : '<li class="widget-list-item"><span class="meta">Событий нет</span></li>'}
@@ -157,24 +156,6 @@ function renderDashboard(container) {
 }
 
 function renderRequestsPage(container) {
-    headerButtonsContainer.innerHTML = `
-        <div class="header-controls">
-            <label for="kanban-filter-employee">Ответственный:</label>
-            <select id="kanban-filter-employee"></select>
-            <button id="go-to-create-request" class="primary-btn">Новая заявка</button>
-        </div>
-    `;
-    const filterSelect = headerButtonsContainer.querySelector('#kanban-filter-employee');
-    filterSelect.innerHTML = `<option value="all">Все сотрудники</option>`;
-    data.employees.forEach(emp => {
-        filterSelect.innerHTML += `<option value="${emp.id}">${emp.name}</option>`;
-    });
-    filterSelect.value = appState.kanbanFilterEmployeeId;
-    filterSelect.addEventListener('change', (e) => {
-        appState.kanbanFilterEmployeeId = e.target.value;
-        renderPage('requests');
-    });
-    
     container.className = 'kanban-board';
     let filteredRequests = data.requests;
     const selectedEmployeeId = appState.kanbanFilterEmployeeId;
@@ -191,7 +172,7 @@ function renderRequestsPage(container) {
         const cardsContainer = column.querySelector('.kanban-cards');
         const requestsForStage = filteredRequests.filter(req => req.status === stageName);
         if (requestsForStage.length === 0) {
-            cardsContainer.innerHTML = '<p class="empty-column-message">Пусто</p>';
+            cardsContainer.innerHTML = '<p style="font-size: 0.9em; color: grey;">Пусто</p>';
         } else {
             requestsForStage.forEach(req => {
                 const client = data.clients.find(c => c.id === req.clientId) || { companyName: 'Клиент не найден' };
@@ -218,73 +199,74 @@ function renderEmployeeDetailsPage(container, employeeId) {
     const employee = data.employees.find(e => e.id == employeeId);
     if (!employee) { container.innerHTML = '<h2>Сотрудник не найден</h2>'; return; }
     pageTitle.textContent = employee.name;
-    const view = document.getElementById('template-employee-details').content.cloneNode(true);
-    const form = view.querySelector('#edit-employee-form');
-    form.dataset.action = "edit";
-    form.dataset.entity = "employee";
+    container.appendChild(document.getElementById('template-employee-details').content.cloneNode(true));
+    const form = container.querySelector('#edit-employee-form');
     form.innerHTML = `
-        <input type="hidden" name="id" value="${employee.id}">
+        <input type="hidden" id="edit-employee-id" value="${employee.id}">
         <label for="edit-employee-name">ФИО:</label>
-        <input type="text" name="name" value="${employee.name}" required>
+        <input type="text" id="edit-employee-name" value="${employee.name}" required>
         <label for="edit-employee-role">Должность:</label>
-        <input type="text" name="role" value="${employee.role}" required>
+        <input type="text" id="edit-employee-role" value="${employee.role}" required>
         <label for="edit-employee-department">Отдел:</label>
-        <select name="departmentId" required></select>
+        <select id="edit-employee-department" required></select>
         <button type="submit" class="primary-btn">Сохранить изменения</button>
     `;
-    populateSelect(form.querySelector('[name="departmentId"]'), data.departments, 'id', 'name');
-    form.querySelector('[name="departmentId"]').value = employee.departmentId;
-
-    const requestsLog = view.querySelector('#employee-requests-log');
+    const departmentSelect = form.querySelector('#edit-employee-department');
+    data.departments.forEach(dep => { departmentSelect.innerHTML += `<option value="${dep.id}">${dep.name}</option>`; });
+    departmentSelect.value = employee.departmentId;
+    const requestsLog = container.querySelector('#employee-requests-log');
     requestsLog.innerHTML = '';
     const assignedRequests = data.requests.filter(
         r => r.managerId == employeeId || r.engineerId == employeeId
     ).sort((a,b) => b.id - a.id);
     if (assignedRequests.length === 0) {
         requestsLog.innerHTML = '<p>За сотрудником не закреплено ни одной заявки.</p>';
-    } else {
-        assignedRequests.forEach(req => {
-            const client = data.clients.find(c => c.id == req.clientId) || { companyName: 'Клиент не найден' };
-            let roleInRequest = [];
-            if (req.managerId == employeeId) roleInRequest.push('Менеджер');
-            if (req.engineerId == employeeId) roleInRequest.push('Инженер');
-            const logItem = document.createElement('div');
-            logItem.className = 'log-item';
-            logItem.innerHTML = `
-                <p><strong><a href="#" onclick="event.preventDefault(); window.openRequestDetails(${req.id})">Заявка #${req.id}</a></strong> для ${client.companyName}</p>
-                <p>Статус: ${req.status}</p>
-                <p class="log-meta">Роль: ${roleInRequest.join(', ')}</p>
-            `;
-            requestsLog.appendChild(logItem);
-        });
+        return;
     }
-    container.appendChild(view);
-}
-
-function renderDepartmentsPage(container) {
-    headerButtonsContainer.innerHTML = `
-        <button data-action="create" data-entity="department" class="primary-btn">Добавить отдел</button>
-        <button data-action="create" data-entity="employee" class="primary-btn">Добавить сотрудника</button>
-    `;
-    renderEmployeeListPage(container);
+    assignedRequests.forEach(req => {
+        const client = data.clients.find(c => c.id == req.clientId) || { companyName: 'Клиент не найден' };
+        let roleInRequest = [];
+        if (req.managerId == employeeId) roleInRequest.push('Менеджер');
+        if (req.engineerId == employeeId) roleInRequest.push('Инженер');
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        logItem.innerHTML = `
+            <p><strong><a href="#" onclick="event.preventDefault(); window.openRequestDetails(${req.id})">Заявка #${req.id}</a></strong> для ${client.companyName}</p>
+            <p>Статус: ${req.status}</p>
+            <p class="log-meta">Роль: ${roleInRequest.join(', ')}</p>
+        `;
+        requestsLog.appendChild(logItem);
+    });
 }
 
 function renderEmployeeListPage(container) {
+    headerButtonsContainer.innerHTML = `
+        <button id="go-to-create-department" class="primary-btn">Добавить отдел</button>
+        <button id="go-to-create-employee" class="primary-btn">Добавить сотрудника</button>
+    `;
     container.innerHTML = `<div class="page-view"><div class="employee-list-header"><div>Имя</div><div>Должность</div><div>Отдел</div></div><div class="employee-list-view"></div></div>`;
     const listContainer = container.querySelector('.employee-list-view');
     if (!data.employees || data.employees.length === 0) { listContainer.innerHTML += '<p>Сотрудники не найдены.</p>'; return; }
     
-    data.employees.forEach(emp => {
-        const department = data.departments.find(d => d.id === emp.departmentId) || { name: 'Не распределен' };
+    const enrichedEmployees = data.employees.map(emp => {
+        const department = data.departments.find(d => d.id === emp.departmentId) || { name: 'Не распределен', parentId: null };
+        const parentDept = data.departments.find(d => d.id === department.parentId) || { id: department.parentId || -1, name: 'Основная группа' };
+        return { ...emp, department, parentDept };
+    });
+    enrichedEmployees.sort((a, b) => (a.parentDept && b.parentDept) ? a.parentDept.id - b.parentDept.id : 0);
+
+    let currentGroupId = null;
+    enrichedEmployees.forEach(emp => {
+        if (emp.parentDept && emp.parentDept.id !== currentGroupId) {
+            currentGroupId = emp.parentDept.id;
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'employee-group-header';
+            groupHeader.textContent = emp.parentDept.name;
+            listContainer.appendChild(groupHeader);
+        }
         const card = document.createElement('div');
         card.className = 'employee-card';
-        card.innerHTML = `
-            <div class="employee-card-name">
-                <a href="#" data-action="details" data-entity="employee" data-id="${emp.id}">${emp.name}</a>
-            </div>
-            <div>${emp.role}</div>
-            <div>${department.name}</div>
-        `;
+        card.innerHTML = `<div class="employee-card-name" onclick="window.openEmployeeDetails(${emp.id})">${emp.name}</div><div class="employee-card-role">${emp.role}</div><div class="employee-card-department">${emp.department.name}</div>`;
         listContainer.appendChild(card);
     });
 }
@@ -294,60 +276,71 @@ function renderDocuments(container) {
 }
 
 function renderCreateRequestPage(container) {
-    const view = document.getElementById('template-create-request').content.cloneNode(true);
-    const clientSelect = view.querySelector('#request-client');
-    const newClientFields = view.querySelector('#new-client-fields');
-    
-    populateSelect(view.querySelector('#request-manager'), data.employees, 'id', 'name', 'Выберите');
-    populateSelect(view.querySelector('#request-engineer'), data.employees, 'id', 'name', 'Выберите');
-    populateSelect(clientSelect, data.clients, 'id', 'companyName', 'Выберите');
-    clientSelect.innerHTML += '<option value="new">-- Создать нового клиента --</option>';
-
+    container.appendChild(document.getElementById('template-create-request').content.cloneNode(true));
+    const clientSelect = container.querySelector('#request-client');
+    const managerSelect = container.querySelector('#request-manager');
+    const engineerSelect = container.querySelector('#request-engineer');
+    const newClientFields = container.querySelector('#new-client-fields');
+    clientSelect.innerHTML = '<option value="">-- Выберите --</option><option value="new">-- Создать нового --</option>';
+    data.clients.forEach(c => { clientSelect.innerHTML += `<option value="${c.id}">${c.companyName}</option>`; });
+    managerSelect.innerHTML = '<option value="">-- Выберите --</option>';
+    engineerSelect.innerHTML = '<option value="">-- Выберите --</option>';
+    data.employees.forEach(emp => {
+        const option = `<option value="${emp.id}">${emp.name} (${emp.role})</option>`;
+        managerSelect.innerHTML += option;
+        engineerSelect.innerHTML += option;
+    });
     clientSelect.addEventListener('change', () => {
         newClientFields.classList.toggle('hidden', clientSelect.value !== 'new');
         newClientFields.querySelector('#new-client-company-name').required = (clientSelect.value === 'new');
     });
-    container.appendChild(view);
 }
 
 function renderEditRequestPage(container, requestId) {
     const request = data.requests.find(r => r.id == requestId);
-    if (!request) { container.innerHTML = `<h2>Заявка не найдена</h2>`; return; }
+    if (!request) { container.innerHTML = `<div class="page-view"><h2>Заявка не найдена</h2></div>`; return; }
     
+    container.appendChild(document.getElementById('template-edit-request').content.cloneNode(true));
     const client = data.clients.find(c => c.id == request.clientId) || {};
-    pageTitle.textContent = `Заявка #${request.id}`;
+    pageTitle.textContent = `Редактирование заявки`;
+    container.querySelector('#edit-request-title-id').textContent = request.id;
+    container.querySelector('#edit-request-title-client').textContent = client.companyName;
     
-    const view = document.getElementById('template-edit-request').content.cloneNode(true);
-    view.querySelector('#edit-request-title-id').textContent = request.id;
-    view.querySelector('#edit-request-title-client').textContent = client.companyName;
-    
-    const form = view.querySelector('#edit-request-form');
-    form.dataset.action = "edit";
-    form.dataset.entity = "request";
+    const form = container.querySelector('#edit-request-form');
     form.innerHTML = `
-        <input type="hidden" name="id" value="${request.id}">
-        <label>Клиент:</label><select name="clientId" required></select>
-        <label>Город:</label><input type="text" name="city" value="${request.city || ''}">
-        <label>Адрес:</label><input type="text" name="address" value="${request.address || ''}">
-        <label>Срок:</label><input type="date" name="deadline" value="${request.deadline ? new Date(request.deadline).toISOString().split('T')[0] : ''}">
-        <label>Инфо:</label><textarea name="info" rows="3">${request.info || ''}</textarea>
-        <label>Менеджер:</label><select name="managerId" required></select>
-        <label>Инженер:</label><select name="engineerId" required></select>
-        <h4>Финансы</h4>
-        <label>Сумма:</label><input type="number" name="amount" value="${request.amount || 0}" required>
-        <label>Себестоимость:</label><input type="number" name="cost" value="${request.cost || 0}">
+        <input type="hidden" id="edit-request-id" value="${request.id}">
+        <label for="edit-request-client">Клиент:</label><select id="edit-request-client" required></select>
+        <label for="edit-request-city">Город:</label><input type="text" id="edit-request-city" value="${request.city || ''}">
+        <label for="edit-request-address">Адрес:</label><input type="text" id="edit-request-address" value="${request.address || ''}">
+        <label for="edit-request-deadline">Срок выполнения:</label><input type="date" id="edit-request-deadline" value="${request.deadline ? new Date(request.deadline).toISOString().split('T')[0] : ''}">
+        <label for="edit-request-info">Доп. информация:</label><textarea id="edit-request-info" rows="4">${request.info || ''}</textarea>
+        <label for="edit-request-manager">Отв. менеджер:</label><select id="edit-request-manager" required></select>
+        <label for="edit-request-engineer">Отв. инженер:</label><select id="edit-request-engineer" required></select>
+        <div class="financial-block">
+            <h4>Финансы</h4>
+            <label>Цена контракта:</label><input type="number" id="edit-request-amount" value="${request.amount}" required>
+            <label>Себестоимость:</label><input type="number" id="edit-request-cost" value="${request.cost || 0}">
+        </div>
         <button type="submit" class="primary-btn">Сохранить</button>
-        <button type="button" id="generate-doc-btn" class="primary-btn secondary-btn">Создать КП (.doc)</button>
+        <button type="button" id="generate-pdf-btn" class="primary-btn secondary-btn" style="margin-top:10px;">Создать КП (.doc)</button>
     `;
-    
-    populateSelect(form.querySelector('[name="clientId"]'), data.clients, 'id', 'companyName');
-    form.querySelector('[name="clientId"]').value = request.clientId;
-    populateSelect(form.querySelector('[name="managerId"]'), data.employees, 'id', 'name');
-    form.querySelector('[name="managerId"]').value = request.managerId;
-    populateSelect(form.querySelector('[name="engineerId"]'), data.employees, 'id', 'name');
-    form.querySelector('[name="engineerId"]').value = request.engineerId;
 
-    const activityFeed = view.querySelector('#activity-feed');
+    const clientSelect = form.querySelector('#edit-request-client');
+    data.clients.forEach(c => { clientSelect.innerHTML += `<option value="${c.id}">${c.companyName}</option>`; });
+    clientSelect.value = request.clientId;
+
+    const managerSelect = form.querySelector('#edit-request-manager');
+    const engineerSelect = form.querySelector('#edit-request-engineer');
+    data.employees.forEach(emp => {
+        const option = `<option value="${emp.id}">${emp.name}</option>`;
+        managerSelect.innerHTML += option;
+        engineerSelect.innerHTML += option;
+    });
+    managerSelect.value = request.managerId;
+    engineerSelect.value = request.engineerId;
+    
+    const activityFeed = container.querySelector('#activity-feed');
+    activityFeed.innerHTML = '';
     const combinedFeed = [
         ...(request.activityLog || []).map(item => ({ ...item, feedType: 'log' })),
         ...(request.comments || []).map(item => ({ ...item, feedType: 'comment' }))
@@ -362,12 +355,12 @@ function renderEditRequestPage(container, requestId) {
             feedElement.innerHTML = `<p class="comment-author">${author.name}</p><p class="comment-text">${item.text}</p><p class="comment-meta">${date}</p>`;
         } else {
             feedElement.classList.add('system-event');
-            feedElement.innerHTML = `<p class="log-text">${item.action}</p><p class="log-meta">${date} - ${item.user}</p>`;
+            feedElement.innerHTML = `<p class="log-text">${item.text}</p><p class="log-meta">${date}</p>`;
         }
         activityFeed.appendChild(feedElement);
     });
 
-    const tasksContainer = view.querySelector('#request-tasks');
+    const tasksContainer = container.querySelector('#request-tasks');
     tasksContainer.innerHTML = '';
     if (request.tasks && request.tasks.length > 0) {
         request.tasks.forEach((task, index) => {
@@ -378,12 +371,10 @@ function renderEditRequestPage(container, requestId) {
             tasksContainer.appendChild(taskElement);
         });
     }
-    
-    container.appendChild(view);
 }
 
 function renderClientListPage(container) {
-    headerButtonsContainer.innerHTML = `<button class="primary-btn" data-action="create" data-entity="client">Добавить клиента</button>`;
+    headerButtonsContainer.innerHTML = `<button id="go-to-create-client" class="primary-btn">Добавить клиента</button>`;
     const listHeader = `<div class="employee-list-header"><div>Компания</div><div>Контактное лицо</div><div>Статус</div></div>`;
     container.innerHTML = `<div class="page-view"><div class="employee-list-view">${listHeader}</div></div>`;
     const listContainer = container.querySelector('.employee-list-view');
@@ -404,13 +395,7 @@ function renderClientListPage(container) {
         groupedByRegion[region].forEach(client => {
             const card = document.createElement('div');
             card.className = 'employee-card';
-            card.innerHTML = `
-                <div class="employee-card-name">
-                    <a href="#" data-action="details" data-entity="client" data-id="${client.id}">${client.companyName}</a>
-                </div>
-                <div>${client.contactPerson || '-'}</div>
-                <div>${client.status}</div>
-            `;
+            card.innerHTML = `<div class="employee-card-name" onclick="window.openClientDetails(${client.id})">${client.companyName}</div><div>${client.contactPerson || '-'}</div><div>${client.status}</div>`;
             listContainer.appendChild(card);
         });
     }
@@ -421,9 +406,10 @@ function renderClientDetailsPage(container, clientId) {
     if (!client) { container.innerHTML = '<h2>Клиент не найден</h2>'; return; }
     
     pageTitle.textContent = client.companyName;
-    const view = document.getElementById('template-client-details').content.cloneNode(true);
+    container.innerHTML = '';
+    container.appendChild(document.getElementById('template-client-details').content.cloneNode(true));
     
-    const statusBar = view.querySelector('.client-status-bar');
+    const statusBar = container.querySelector('.client-status-bar');
     statusBar.innerHTML = '';
     data.clientStatuses.forEach(status => {
         const item = document.createElement('div');
@@ -434,58 +420,61 @@ function renderClientDetailsPage(container, clientId) {
         statusBar.appendChild(item);
     });
 
-    const infoForm = view.querySelector('#edit-client-form');
-    infoForm.dataset.action = "edit";
-    infoForm.dataset.entity = "client";
+    const infoForm = container.querySelector('#edit-client-form');
     infoForm.innerHTML = `
-        <input type="hidden" name="id" value="${client.id}">
-        <label>Название компании:</label><input type="text" name="companyName" value="${client.companyName}">
-        <label>Контактное лицо:</label><input type="text" name="contactPerson" value="${client.contactPerson || ''}">
-        <label>Контакты:</label><input type="text" name="contacts" value="${client.contacts || ''}">
-        <label>Регион:</label><input type="text" name="region" value="${client.region || ''}">
+        <input type="hidden" id="edit-client-id" value="${client.id}">
+        <label>Название компании:</label><input type="text" id="edit-client-company-name" value="${client.companyName}">
+        <label>Контактное лицо:</label><input type="text" id="edit-client-contact-person" value="${client.contactPerson || ''}">
+        <label>Контакты:</label><input type="text" id="edit-client-contacts" value="${client.contacts || ''}">
+        <label>Регион:</label><input type="text" id="edit-client-region" value="${client.region || ''}">
         <button type="submit" class="primary-btn">Сохранить</button>
     `;
     
-    const logColumn = view.querySelector('.activity-log');
-    logColumn.innerHTML = "<h3>История заявок</h3>";
+    const logColumn = container.querySelector('.activity-log');
     const clientRequests = data.requests.filter(r => r.clientId == clientId).sort((a,b) => b.id - a.id);
+    logColumn.innerHTML = '';
     if (clientRequests.length > 0) {
         clientRequests.forEach(req => {
+            const creationLog = (req.activityLog || []).find(log => log.text && log.text.includes('создана'));
+            const creationTimestamp = creationLog ? new Date(creationLog.timestamp).toLocaleDateString() : 'N/A';
             const logItemElement = document.createElement('div');
             logItemElement.className = 'log-item';
             logItemElement.innerHTML = `
-                <p><strong><a href="#" data-action="details" data-entity="request" data-id="${req.id}">Заявка #${req.id}</a></strong></p>
+                <p><strong><a href="#" onclick="event.preventDefault(); window.openRequestDetails(${req.id})">Заявка #${req.id}</a></strong></p>
                 <p>Сумма: ${Number(req.amount).toLocaleString()} руб.</p>
                 <p>Статус: ${req.status}</p>
+                <p class="log-meta">Создана: ${creationTimestamp}</p>
             `;
             logColumn.appendChild(logItemElement);
         });
     } else {
-        logColumn.innerHTML += '<p>Заявок по этому клиенту пока нет.</p>';
+        logColumn.innerHTML = '<p>Заявок по этому клиенту пока нет.</p>';
     }
-    
-    container.appendChild(view);
 }
 
 function renderCreateDepartmentPage(container) {
-    const view = document.getElementById('template-create-department').content.cloneNode(true);
-    const parentSelect = view.querySelector('#parent-department');
-    populateSelect(parentSelect, data.departments, 'id', 'name', '-- Корневой отдел --');
-    container.appendChild(view);
+    container.appendChild(document.getElementById('template-create-department').content.cloneNode(true));
+    const parentSelect = container.querySelector('#parent-department');
+    parentSelect.innerHTML = '<option value="null">-- Корневой отдел --</option>';
+    data.departments.forEach(dep => { parentSelect.innerHTML += `<option value="${dep.id}">${dep.name}</option>`; });
 }
 
 function renderCreateClientPage(container) {
-    const view = document.getElementById('template-create-client').content.cloneNode(true);
-    const statusSelect = view.querySelector('#client-status');
-    populateSelect(statusSelect, data.clientStatuses.map(s => ({id: s, name: s})), 'id', 'name');
-    container.appendChild(view);
+    container.appendChild(document.getElementById('template-create-client').content.cloneNode(true));
+    const statusSelect = container.querySelector('#client-status');
+    data.clientStatuses.forEach(status => { statusSelect.innerHTML += `<option value="${status}">${status}</option>`; });
 }
 
 function renderCreateEmployeePage(container) {
-    const view = document.getElementById('template-create-employee').content.cloneNode(true);
-    const departmentSelect = view.querySelector('#employee-department');
-    populateSelect(departmentSelect, data.departments, 'id', 'name', 'Выберите отдел');
-    container.appendChild(view);
+    container.appendChild(document.getElementById('template-create-employee').content.cloneNode(true));
+    const departmentSelect = container.querySelector('#employee-department');
+    data.departments.forEach(dep => { departmentSelect.innerHTML += `<option value="${dep.id}">${dep.name}</option>`; });
+}
+
+function updateActiveNav(pageId) {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const activePage = pageId === 'employee-details' ? 'departments' : pageId;
+    document.querySelector(`.nav-item[data-page="${activePage}"]`)?.classList.add('active');
 }
 
 function populateSelect(selectElement, items, valueKey, textKey, placeholder = '') {
@@ -499,18 +488,4 @@ function populateSelect(selectElement, items, valueKey, textKey, placeholder = '
     });
 }
 
-function updateActiveNav(pageId) {
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    let pageToHighlight = pageId;
-    if (pageId.includes('details') || pageId.startsWith('create-') || pageId.startsWith('edit-')) {
-        if (pageId.includes('client')) pageToHighlight = 'clients';
-        else if (pageId.includes('request')) pageToHighlight = 'requests';
-        else if (pageId.includes('employee') || pageId.includes('department')) pageToHighlight = 'departments';
-    }
-    const activeLink = document.querySelector(`.nav-item[data-page="${pageToHighlight}"]`);
-    if (activeLink) activeLink.classList.add('active');
-}
-
-export function closePopup() {
-    // Эта функция пока не нужна, так как мы не используем модальные окна
-}
+export function closePopup() {}

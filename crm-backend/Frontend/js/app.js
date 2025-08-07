@@ -1,139 +1,157 @@
-import * as api from './data-manager.js';
-import { renderPage, closePopup } from './ui-renderer.js';
+import * as api from './js/data-manager.js';
+import { renderPage, closePopup } from './js/ui-renderer.js';
 
 let currentPage = 'dashboard';
-let currentOptions = {}; // Для хранения ID и другой информации
+let currentOptions = {};
 
 /**
  * Центральная функция для обновления данных и перерисовки интерфейса.
  */
 async function reloadAndRender() {
-    await api.loadData();
-    renderPage(currentPage, currentOptions);
+    try {
+        await api.loadData();
+        renderPage(currentPage, currentOptions);
+    } catch (error) {
+        console.error("Не удалось перезагрузить и отобразить данные:", error);
+    }
 }
 
 /**
- * Обрабатывает отправку форм СОЗДАНИЯ.
+ * Обрабатывает отправку всех форм (создания и редактирования).
  */
-async function handleCreateForm(form) {
-    const entityType = form.dataset.entity;
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const action = form.dataset.action;
+    const entity = form.dataset.entity;
     const formData = Object.fromEntries(new FormData(form));
-    
-    // Преобразование типов данных
-    if(formData.parentId) formData.parentId = formData.parentId ? parseInt(formData.parentId) : null;
-    
-    try {
-        switch (entityType) {
-            case 'department':
-                await api.createDepartment(formData);
-                currentPage = 'departments';
-                break;
-            case 'client':
-                await api.createClient(formData);
-                currentPage = 'clients';
-                break;
-            case 'request':
-                // Логика создания нового клиента из формы заявки
-                if (formData.clientId === 'new') {
-                    const newClient = await api.createClient({
-                        companyName: formData.newClientCompanyName,
-                        contactPerson: formData.newClientContactPerson,
-                        contacts: formData.newClientContacts,
-                        status: 'Лид'
-                    });
-                    formData.clientId = newClient.id;
-                }
-                // Преобразуем числовые поля
-                formData.clientId = parseInt(formData.clientId);
-                formData.managerId = parseInt(formData.managerId);
-                formData.engineerId = parseInt(formData.engineerId);
-                formData.amount = parseFloat(formData.amount);
-                
-                await api.createRequest(formData);
-                currentPage = 'requests';
-                break;
+
+    // Преобразуем строковые ID в числа
+    for (const key in formData) {
+        if (key.endsWith('Id') && formData[key]) {
+            formData[key] = parseInt(formData[key], 10);
         }
+    }
+
+    try {
+        if (action === 'create') {
+            await handleCreate(entity, formData);
+        } else if (action === 'edit') {
+            await handleEdit(entity, formData);
+        }
+        
         closePopup();
         await reloadAndRender();
+
     } catch (error) {
-        console.error(`Ошибка при создании ${entityType}:`, error);
-        alert(`Не удалось создать ${entityType}.`);
+        console.error(`Ошибка при действии '${action}' для '${entity}':`, error);
+        alert('Произошла ошибка. Пожалуйста, проверьте консоль.');
     }
 }
 
 /**
- * Обрабатывает отправку форм РЕДАКТИРОВАНИЯ.
+ * Маршрутизирует запросы на СОЗДАНИЕ.
  */
-async function handleEditForm(form) {
-    const entityType = form.dataset.entity;
-    const formData = Object.fromEntries(new FormData(form));
-    const id = parseInt(formData.id);
-
-    try {
-        switch (entityType) {
-            case 'client':
-                await api.updateClient(id, formData);
-                break;
-            // Добавьте другие кейсы по мере необходимости
-        }
-        await reloadAndRender();
-        alert(`${entityType} успешно обновлен!`);
-    } catch (error) {
-        console.error(`Ошибка при обновлении ${entityType}:`, error);
-        alert(`Не удалось обновить ${entityType}.`);
+async function handleCreate(entity, formData) {
+    switch (entity) {
+        case 'department':
+            await api.createDepartment(formData);
+            currentPage = 'departments';
+            break;
+        case 'client':
+            await api.createClient(formData);
+            currentPage = 'clients';
+            break;
+        case 'request':
+            if (formData.clientId === 'new') {
+                const newClient = await api.createClient({
+                    companyName: formData.newClientCompanyName,
+                    contactPerson: formData.newClientContactPerson,
+                    contacts: formData.newClientContacts,
+                    status: 'Лид'
+                });
+                formData.clientId = newClient.id;
+            }
+            await api.createRequest(formData);
+            currentPage = 'requests';
+            break;
+        case 'employee':
+            await api.createEmployee(formData);
+            currentPage = 'departments';
+            break;
     }
 }
 
+/**
+ * Маршрутизирует запросы на РЕДАКТИРОВАНИЕ.
+ */
+async function handleEdit(entity, formData) {
+    const id = parseInt(formData.id);
+    switch (entity) {
+        case 'client':
+            await api.updateClient(id, formData);
+            break;
+        case 'employee':
+            await api.updateEmployee(id, formData);
+            break;
+        case 'request':
+            await api.updateRequest(id, formData);
+            break;
+    }
+}
+
+/**
+ * Обрабатывает все клики на странице для навигации и кнопок.
+ */
+function handleGlobalClick(event) {
+    const target = event.target;
+    const link = target.closest('a, button'); // Ищем ближайшую ссылку или кнопку
+
+    if (!link || !link.dataset.action) {
+        // Если это клик по навигации в sidebar
+        const navLink = target.closest('a[data-page]');
+        if (navLink) {
+            event.preventDefault();
+            currentPage = navLink.dataset.page;
+            currentOptions = {};
+            renderPage(currentPage, currentOptions);
+        }
+        return;
+    }
+
+    event.preventDefault();
+    const { action, entity, id } = link.dataset;
+
+    if (action === 'create') {
+        currentPage = `create-${entity}`;
+        currentOptions = {};
+        renderPage(currentPage);
+    } else if (action === 'details') {
+        currentPage = `${entity}-details`;
+        currentOptions = { [`${entity}Id`]: parseInt(id) };
+        renderPage(currentPage, currentOptions);
+    }
+}
 
 /**
  * Инициализация приложения.
  */
 async function init() {
-    // Глобальный обработчик отправки форм
-    document.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const form = e.target;
-        if (form.dataset.entity && form.dataset.action === 'create') {
-            handleCreateForm(form);
+    // Назначаем глобальные функции, которые можно вызывать из HTML (для Sortable.js и т.д.)
+    window.updateRequestStatus = async (requestId, newStatus) => {
+        try {
+            await api.updateRequest(requestId, { status: newStatus });
+            await reloadAndRender();
+        } catch (error) {
+            console.error("Не удалось обновить статус заявки:", error);
         }
-        if (form.dataset.entity && form.dataset.action === 'edit') {
-            handleEditForm(form);
-        }
-    });
-
-    // Глобальный обработчик кликов (для навигации и кнопок)
-    document.addEventListener('click', (e) => {
-        const target = e.target;
-
-        // Навигация
-        const navLink = target.closest('a[data-page]');
-        if (navLink) {
-            e.preventDefault();
-            currentPage = navLink.dataset.page;
-            currentOptions = {};
-            renderPage(currentPage, currentOptions);
-        }
-
-        // Кнопки открытия форм создания
-        const createBtn = target.closest('button[data-action="create"]');
-        if (createBtn) {
-            currentPage = `create-${createBtn.dataset.entity}`;
-            currentOptions = {};
-            renderPage(currentPage);
-        }
-        
-        // Кнопки/ссылки для открытия деталей (редактирования)
-        const detailsLink = target.closest('[data-action="details"]');
-        if (detailsLink) {
-            e.preventDefault();
-            currentPage = `${detailsLink.dataset.entity}-details`;
-            currentOptions[`${detailsLink.dataset.entity}Id`] = parseInt(detailsLink.dataset.id);
-            renderPage(currentPage, currentOptions);
-        }
-    });
-
-    // Первоначальная загрузка
-    currentPage = 'dashboard';
+    };
+    
+    // Устанавливаем единые обработчики на весь документ
+    document.addEventListener('submit', handleFormSubmit);
+    document.addEventListener('click', handleGlobalClick);
+    
+    // Первоначальная загрузка данных и отрисовка главной страницы
     await reloadAndRender();
 }
 
