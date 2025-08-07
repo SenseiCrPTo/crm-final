@@ -20,14 +20,16 @@ const frontendPath = path.join(__dirname, 'Frontend');
 // Обслуживание статических файлов
 app.use(express.static(frontendPath));
 
-// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Явно указываем SSL ---
+// --- ЖЕСТКО ПРОПИСАННЫЙ URL С ВАШИМ ПАРОЛЕМ ---
+const DATABASE_CONNECTION_STRING = 'postgresql://postgres:Hammer789!#Hammer@db.jiwgatrnpdgjcykdajiz.supabase.co:5432/postgres';
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: DATABASE_CONNECTION_STRING,
     ssl: {
         rejectUnauthorized: false
     }
 });
-// --- КОНЕЦ ИЗМЕНЕНИЯ ---
+// --- КОНЕЦ БЛОКА ПОДКЛЮЧЕНИЯ ---
 
 const toCamelCase = (rows) => {
     return rows.map(row => {
@@ -40,7 +42,7 @@ const toCamelCase = (rows) => {
     });
 };
 
-// ... (остальная часть файла остается без изменений) ...
+// --- API МАРШРУТЫ ---
 
 // GET (Получить списки)
 app.get('/api/:resource', async (req, res) => {
@@ -58,6 +60,7 @@ app.get('/api/:resource', async (req, res) => {
     }
 });
 
+// POST (Создать)
 app.post('/api/departments', async (req, res) => {
     try {
         const { name, parentId = null } = req.body;
@@ -106,6 +109,7 @@ app.post('/api/requests', async (req, res) => {
     }
 });
 
+// PATCH (Обновить)
 app.patch('/api/:resource/:id', async (req, res) => {
     const { resource, id } = req.params;
     const validResources = ['clients', 'employees', 'requests', 'departments'];
