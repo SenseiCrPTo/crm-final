@@ -20,16 +20,14 @@ const frontendPath = path.join(__dirname, 'Frontend');
 // Обслуживание статических файлов
 app.use(express.static(frontendPath));
 
-// --- ЖЕСТКО ПРОПИСАННЫЙ URL С ВАШИМ ПАРОЛЕМ ---
-const DATABASE_CONNECTION_STRING = 'postgresql://postgres:Hammer789!#Hammer@db.jiwgatrnpdgjcykdajiz.supabase.co:5432/postgres';
-
+// --- ИЗМЕНЕНИЕ: Возвращаем стандартное подключение ---
 const pool = new Pool({
-    connectionString: DATABASE_CONNECTION_STRING,
+    connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
 });
-// --- КОНЕЦ БЛОКА ПОДКЛЮЧЕНИЯ ---
+// --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
 const toCamelCase = (rows) => {
     return rows.map(row => {
