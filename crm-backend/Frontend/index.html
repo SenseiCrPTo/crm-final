@@ -30,20 +30,18 @@
     <template id="template-create-request">
         <div class="page-view">
             <h3>Новая заявка</h3>
-            <form id="request-form" class="form-view" data-entity="request">
+            <form id="request-form" class="form-view" data-action="create" data-entity="request">
                 <label for="request-client">Клиент:</label>
                 <select id="request-client" name="clientId" required></select>
-                
                 <div id="new-client-fields" class="hidden" style="margin-left: 20px; border-left: 2px solid #eee; padding-left: 20px;">
                     <h4>Создание нового клиента</h4>
                     <label for="new-client-company-name">Название компании:</label>
                     <input type="text" id="new-client-company-name" name="newClientCompanyName">
                     <label for="new-client-contact-person">Контактное лицо:</label>
                     <input type="text" id="new-client-contact-person" name="newClientContactPerson">
-                    <label for="new-client-contacts">Контакты (телефон/email):</label>
+                    <label for="new-client-contacts">Контакты:</label>
                     <input type="text" id="new-client-contacts" name="newClientContacts">
                 </div>
-
                 <label for="request-city">Город:</label>
                 <input type="text" id="request-city" name="city">
                 <label for="request-address">Адрес:</label>
@@ -79,9 +77,6 @@
                     <input type="text" name="task-text" placeholder="Новая задача..." required>
                     <button type="submit" class="primary-btn">Добавить</button>
                 </form>
-                <h3>Прикрепленные файлы</h3>
-                <div id="request-attachments" class="attachment-list"></div>
-                <button id="add-attachment-btn" class="secondary-btn" style="width: auto;">Прикрепить файл (симуляция)</button>
             </div>
             <div class="details-side-column">
                 <h3>Заявка #<span id="edit-request-title-id"></span></h3>
@@ -94,7 +89,7 @@
     <template id="template-create-department">
         <div class="page-view">
             <h3>Создание нового отдела</h3>
-            <form id="department-form" class="form-view" data-entity="department">
+            <form id="department-form" class="form-view" data-action="create" data-entity="department">
                 <label for="department-name">Название отдела:</label>
                 <input type="text" id="department-name" name="name" required>
                 <label for="parent-department">Головной отдел:</label>
@@ -107,7 +102,7 @@
     <template id="template-create-employee">
         <div class="page-view">
             <h3>Добавление нового сотрудника</h3>
-            <form id="employee-form" class="form-view" data-entity="employee">
+            <form id="employee-form" class="form-view" data-action="create" data-entity="employee">
                 <label for="employee-name">ФИО:</label>
                 <input type="text" id="employee-name" name="name" required>
                 <label for="employee-role">Должность:</label>
@@ -135,7 +130,7 @@
     <template id="template-create-client">
         <div class="page-view">
             <h3>Добавление нового клиента</h3>
-            <form id="client-form" class="form-view" data-entity="client">
+            <form id="client-form" class="form-view" data-action="create" data-entity="client">
                 <label for="client-company-name">Название компании:</label>
                 <input type="text" id="client-company-name" name="companyName" required>
                 <label for="client-contact-person">ФИО контактного лица:</label>
