@@ -20,13 +20,14 @@ const frontendPath = path.join(__dirname, 'Frontend');
 // Обслуживание статических файлов
 app.use(express.static(frontendPath));
 
-
-// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Упрощена конфигурация подключения к БД ---
+// --- ИЗМЕНЕНИЕ ЗДЕСЬ: Явно указываем SSL ---
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 // --- КОНЕЦ ИЗМЕНЕНИЯ ---
-
 
 const toCamelCase = (rows) => {
     return rows.map(row => {
@@ -39,7 +40,9 @@ const toCamelCase = (rows) => {
     });
 };
 
-// API Маршруты
+// ... (остальная часть файла остается без изменений) ...
+
+// GET (Получить списки)
 app.get('/api/:resource', async (req, res) => {
     const { resource } = req.params;
     const validResources = ['departments', 'employees', 'clients', 'requests'];
@@ -115,7 +118,7 @@ app.patch('/api/:resource/:id', async (req, res) => {
         let queryCounter = 1;
         
         for (const key in req.body) {
-            if (key === 'id') continue; // Не обновляем id
+            if (key === 'id') continue;
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
             fields.push(`${snakeKey} = $${queryCounter++}`);
             
@@ -150,7 +153,6 @@ app.patch('/api/:resource/:id', async (req, res) => {
 app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
-
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
