@@ -1,3 +1,4 @@
+// Используем относительный путь, это самый надежный вариант
 const API_BASE_URL = '/api';
 
 export const data = {
@@ -33,14 +34,22 @@ export async function loadData() {
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     try {
+        // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+        // Собираем полный URL как простую строку
+        const url = `${API_BASE_URL}/${endpoint}`;
+        
         const options = {
             method,
             headers: { 'Content-Type': 'application/json' }
         };
+
         if (body) {
             options.body = JSON.stringify(body);
         }
-        const response = await fetch(`${API_BASE_URL}/${endpoint}`, options);
+
+        const response = await fetch(url, options);
+        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
         if (!response.ok) {
             const errorBody = await response.json();
             throw new Error(errorBody.error || `HTTP error! status: ${response.status}`);
