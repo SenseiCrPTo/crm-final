@@ -60,13 +60,17 @@ header {
     text-decoration: none; 
     border-radius: 8px; 
     margin-bottom: 5px; 
+    transition: background-color 0.3s ease, opacity 0.3s ease;
 }
 
-.nav-item:hover, .nav-item.active { 
+.nav-item:hover {
+    opacity: 0.9;
+}
+.nav-item.active { 
     background-color: var(--primary-color); 
 }
 
-.primary-btn { 
+.primary-btn, .secondary-btn { 
     padding: 10px 20px; 
     border: none; 
     border-radius: 5px; 
@@ -74,17 +78,27 @@ header {
     color: #fff; 
     font-size: 16px; 
     cursor: pointer; 
+    transition: opacity 0.3s ease;
+}
+.primary-btn:hover, .secondary-btn:hover {
+    opacity: 0.8;
 }
 
 .secondary-btn { 
     background-color: #6c757d; 
 }
 
-.page-view { 
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page-view, .dashboard-widget { 
     background-color: var(--secondary-bg); 
     padding: 25px; 
     border-radius: 8px; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
 .form-view, .info-block { 
@@ -299,9 +313,6 @@ header {
     color: #27ae60; 
 }
 
-
-/* --- Стили для обновленной карточки заявки --- */
-
 .comment-form-container { 
     background-color: #fff; 
     padding: 20px; 
@@ -432,7 +443,6 @@ header {
     color: var(--text-color-secondary); 
 }
 
-/* --- Стили для страницы Документов --- */
 .document-list-view {
     background-color: var(--secondary-bg);
     border-radius: 8px;
@@ -468,7 +478,6 @@ header {
     text-decoration: underline;
 }
 
-/* --- Стили для фильтров в заголовке --- */
 .header-controls {
     display: flex;
     align-items: center;
@@ -488,19 +497,11 @@ header {
     font-size: 1em;
 }
 
-/* --- Стили для Дашборда --- */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-auto-rows: min-content;
     gap: 25px;
-}
-
-.dashboard-widget {
-    background-color: var(--secondary-bg);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .dashboard-widget.col-span-2 {
@@ -564,41 +565,65 @@ header {
 }
 
 /* =============================================== */
-/* Стили для мобильных устройств (с последними исправлениями) */
+/* Стили для мобильных устройств (с нижней панелью) */
 /* =============================================== */
 
 @media (max-width: 768px) {
 
-    /* 1. Перестраиваем основной макет: боковая панель и контент */
     body {
         flex-direction: column;
     }
 
     .sidebar {
         width: 100%;
-        height: auto;
-        position: static;
+        height: 60px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        background-color: var(--sidebar-bg);
+        border-top: 1px solid #444;
+        padding: 5px 0;
+        z-index: 100;
         border-right: none;
-        border-bottom: 1px solid #ddd;
+        border-bottom: none;
+    }
+
+    .sidebar h2.logo {
+        display: none;
     }
 
     .sidebar nav {
         display: flex;
-        flex-wrap: wrap;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        flex-wrap: nowrap;
+        gap: 0;
+    }
+
+    .sidebar nav a {
+        flex-grow: 1;
+        text-align: center;
+        padding: 10px 5px;
+        margin: 0;
+        border-radius: 0;
+        font-size: 0.8em;
+        display: flex;
+        flex-direction: column;
         justify-content: center;
-        gap: 5px 15px;
+        height: 100%;
     }
 
     .main-content {
         margin-left: 0;
         width: 100%;
+        padding-bottom: 70px; 
     }
-
-    /* 2. Адаптируем страницы с двумя колонками (детали заявки, клиента) */
+    
     .details-view-container {
-        flex-direction: column-reverse;
-        /* ИЗМЕНЕНИЕ: меняем grid на flex для простоты */
         display: flex;
+        flex-direction: column-reverse;
     }
 
     .details-main-column,
@@ -606,7 +631,6 @@ header {
         width: 100%;
     }
 
-    /* 3. Делаем Канбан-доску (заявки) горизонтально прокручиваемой */
     .kanban-board {
         display: flex;
         flex-direction: row;
@@ -620,7 +644,6 @@ header {
         flex-shrink: 0;
     }
     
-    /* 4. Виджеты на главной странице выстраиваем в один столбец */
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
@@ -629,19 +652,16 @@ header {
         grid-column: auto;
     }
 
-    /* 5. Уменьшаем отступы на формах и страницах */
     .form-view, .page-view {
         padding: 15px;
     }
 
-    /* 6. Заголовок страницы */
     header {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
     }
 
-    /* --- ДОПОЛНЕНИЕ ДЛЯ СПИСКОВ (ИСПРАВЛЕНИЕ ПРОБЛЕМЫ СО СКРИНШОТА) --- */
     .employee-card, .document-list-row {
         grid-template-columns: 1fr;
         gap: 8px;

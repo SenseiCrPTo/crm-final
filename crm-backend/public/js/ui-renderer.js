@@ -96,11 +96,11 @@ function renderDashboard(container) {
                 <h3 class="widget-title">Доход</h3>
                 <div class="stats-container">
                     <div class="stat-item">
-                        <div class="stat-value">${totalAmount.toLocaleString()} ₽</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()} ₸</div>
                         <div class="stat-label">Сумма сделок</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${totalProfit.toLocaleString()} ₽</div>
+                        <div class="stat-value">${totalProfit.toLocaleString()} ₸</div>
                         <div class="stat-label">Прибыль</div>
                     </div>
                     <div class="stat-item">
@@ -180,7 +180,7 @@ function renderRequestsPage(container) {
                 card.className = 'request-card';
                 card.dataset.id = req.id;
                 card.setAttribute('onclick', `window.openRequestDetails(${req.id})`);
-                card.innerHTML = `<h4>${client.companyName}</h4><p>Сумма: ${Number(req.amount).toLocaleString()} руб.</p>`;
+                card.innerHTML = `<h4>${client.companyName}</h4><p>Сумма: ${Number(req.amount).toLocaleString()} тг.</p>`;
                 cardsContainer.appendChild(card);
             });
         }
@@ -441,7 +441,7 @@ function renderClientDetailsPage(container, clientId) {
             logItemElement.className = 'log-item';
             logItemElement.innerHTML = `
                 <p><strong><a href="#" onclick="event.preventDefault(); window.openRequestDetails(${req.id})">Заявка #${req.id}</a></strong></p>
-                <p>Сумма: ${Number(req.amount).toLocaleString()} руб.</p>
+                <p>Сумма: ${Number(req.amount).toLocaleString()} тг.</p>
                 <p>Статус: ${req.status}</p>
                 <p class="log-meta">Создана: ${creationTimestamp}</p>
             `;
