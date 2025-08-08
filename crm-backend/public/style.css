@@ -564,72 +564,69 @@ header {
 }
 
 /* =============================================== */
-/* НОВЫЙ БЛОК: Стили для мобильных устройств      */
+/* Стили для мобильных устройств (с последними исправлениями) */
 /* =============================================== */
 
 @media (max-width: 768px) {
 
     /* 1. Перестраиваем основной макет: боковая панель и контент */
     body {
-        /* Меняем направление flex-контейнера на вертикальное */
         flex-direction: column;
     }
 
     .sidebar {
-        /* Боковая панель становится верхней панелью */
         width: 100%;
         height: auto;
-        position: static; /* Отменяем фиксированное позиционирование */
+        position: static;
         border-right: none;
-        border-bottom: 1px solid #ddd; /* Добавляем нижнюю границу */
+        border-bottom: 1px solid #ddd;
     }
 
     .sidebar nav {
-        /* Располагаем пункты меню в строку с возможностью переноса */
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 5px 15px; /* Промежутки между кнопками */
+        gap: 5px 15px;
     }
 
     .main-content {
-        /* Основной контент теперь занимает всю ширину без отступа */
         margin-left: 0;
         width: 100%;
     }
 
     /* 2. Адаптируем страницы с двумя колонками (детали заявки, клиента) */
     .details-view-container {
-        /* Ставим колонки друг под друга */
-        flex-direction: column-reverse; /* Блок с информацией будет сверху */
+        flex-direction: column-reverse;
+        /* ИЗМЕНЕНИЕ: меняем grid на flex для простоты */
+        display: flex;
     }
 
     .details-main-column,
     .details-side-column {
-        width: 100%; /* Каждая колонка занимает всю ширину */
+        width: 100%;
     }
 
     /* 3. Делаем Канбан-доску (заявки) горизонтально прокручиваемой */
     .kanban-board {
         display: flex;
-        flex-direction: row; /* Колонки остаются в ряд */
-        overflow-x: auto;  /* Добавляем горизонтальный скролл */
+        flex-direction: row;
+        overflow-x: auto;
         align-items: flex-start;
-        padding-bottom: 15px; /* Место для скроллбара */
+        padding-bottom: 15px;
     }
 
     .kanban-column {
-        min-width: 300px; /* Задаем минимальную ширину колонки */
-        flex-shrink: 0; /* Запрещаем колонкам сжиматься */
+        min-width: 300px;
+        flex-shrink: 0;
     }
     
     /* 4. Виджеты на главной странице выстраиваем в один столбец */
     .dashboard-grid {
-        grid-template-columns: 1fr; /* Всегда одна колонка */
+        grid-template-columns: 1fr;
     }
     
     .dashboard-widget.col-span-2 {
-        grid-column: auto; /* Сбрасываем объединение колонок */
+        grid-column: auto;
     }
 
     /* 5. Уменьшаем отступы на формах и страницах */
@@ -639,8 +636,24 @@ header {
 
     /* 6. Заголовок страницы */
     header {
-        flex-direction: column; /* Заголовок и кнопки друг под другом */
+        flex-direction: column;
         align-items: flex-start;
         gap: 15px;
+    }
+
+    /* --- ДОПОЛНЕНИЕ ДЛЯ СПИСКОВ (ИСПРАВЛЕНИЕ ПРОБЛЕМЫ СО СКРИНШОТА) --- */
+    .employee-card, .document-list-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .employee-list-header, .document-list-header {
+        display: none;
+    }
+
+    .employee-list-view {
+        padding: 10px;
     }
 }
