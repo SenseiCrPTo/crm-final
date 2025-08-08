@@ -9,25 +9,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Health check для Railway
-app.get('/', (req, res) => {
-    res.status(200).send('Server is running');
-});
+// --- ИЗМЕНЕНИЕ 1: Определяем правильный путь к папке 'public' ---
+const publicPath = path.join(__dirname, 'public');
 
-// Путь к папке Frontend
-const frontendPath = path.join(__dirname, 'Frontend');
+// --- ИЗМЕНЕНИЕ 2: Обслуживаем статические файлы из папки 'public' ---
+app.use(express.static(publicPath));
 
-// Обслуживание статических файлов
-app.use(express.static(frontendPath));
+// --- ИЗМЕНЕНИЕ 3 (ВАЖНО): Удален маршрут app.get('/') ---
+// Он конфликтовал с отдачей index.html. Теперь express.static сам обработает главную страницу.
 
-// --- ИЗМЕНЕНИЕ: Возвращаем стандартное подключение ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
 });
-// --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
 const toCamelCase = (rows) => {
     return rows.map(row => {
@@ -40,7 +36,7 @@ const toCamelCase = (rows) => {
     });
 };
 
-// --- API МАРШРУТЫ ---
+// --- API МАРШРУТЫ (без изменений) ---
 
 // GET (Получить списки)
 app.get('/api/:resource', async (req, res) => {
@@ -151,9 +147,9 @@ app.patch('/api/:resource/:id', async (req, res) => {
     }
 });
 
-// Обработчик для фронтенда (должен быть в конце)
+// --- ИЗМЕНЕНИЕ 4: Обработчик для фронтенда теперь использует правильный путь 'publicPath' ---
 app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
