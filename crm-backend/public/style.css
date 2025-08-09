@@ -34,6 +34,10 @@ header {
     justify-content: space-between; 
     align-items: center; 
     margin-bottom: 24px; 
+    height: 60px;
+    padding: 0 24px;
+    background-color: var(--secondary-bg);
+    border-bottom: 1px solid var(--border-color);
 }
 
 #header-buttons button { 
