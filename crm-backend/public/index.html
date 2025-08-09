@@ -4,166 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prototype CRM</title>
-    <link rel="stylesheet" href="style.css">
-    
-    <link rel="stylesheet" href="mobile.css"> 
-    
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style type="text/tailwindcss">
+        :root {
+            --background-dark: #111827;
+            --surface-dark: #1f2937;
+            --text-primary-dark: #f9fafb;
+            --text-secondary-dark: #9ca3af;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --border-dark: #374151;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-primary-dark);
+        }
+    </style>
+    <script>
+        // Функция для открытия/закрытия мобильного меню
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
 </head>
-<body>
-    <div class="sidebar">
-        <h2 class="logo">Prototype CRM</h2>
-        <nav>
-            <a href="#" class="nav-item active" data-page="dashboard">Главная</a>
-            <a href="#" class="nav-item" data-page="requests">Заявки</a>
-            <a href="#" class="nav-item" data-page="clients">Клиенты</a>
-            <a href="#" class="nav-item" data-page="departments">Отделы</a>
-            <a href="#" class="nav-item" data-page="documents">Документы</a>
-        </nav>
+<body class="pt-16">
+
+    <header class="fixed top-0 left-0 right-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm z-50 p-4 flex justify-between items-center border-b border-gray-700">
+        <h1 id="page-title" class="text-lg font-bold text-white">Главная</h1>
+        <button class="text-white" id="menu-button" onclick="toggleMenu()">
+            <span class="material-icons">menu</span>
+        </button>
+    </header>
+
+    <div class="hidden fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-95 z-40 pt-20" id="mobile-menu">
+        <nav id="mobile-nav-links" class="flex flex-col items-center space-y-6">
+            </nav>
+        <button class="absolute top-5 right-5 text-white" onclick="toggleMenu()">
+            <span class="material-icons">close</span>
+        </button>
     </div>
 
-    <div class="main-content">
-        <header>
-            <h1 id="page-title">Главная</h1>
-            <div id="header-buttons"></div>
-        </header>
-        <div id="page-content-container"></div>
-    </div>
-    
-    <template id="template-create-request">
-        <div class="page-view">
-            <h3>Новая заявка</h3>
-            <form id="request-form" class="form-view" data-action="create" data-entity="request">
-                <label for="request-client">Клиент:</label>
-                <select id="request-client" name="clientId" required></select>
-                <div id="new-client-fields" class="hidden" style="margin-left: 20px; border-left: 2px solid #eee; padding-left: 20px;">
-                    <h4>Создание нового клиента</h4>
-                    <label for="new-client-company-name">Название компании:</label>
-                    <input type="text" id="new-client-company-name" name="newClientCompanyName">
-                    <label for="new-client-contact-person">Контактное лицо:</label>
-                    <input type="text" id="new-client-contact-person" name="newClientContactPerson">
-                    <label for="new-client-contacts">Контакты:</label>
-                    <input type="text" id="new-client-contacts" name="newClientContacts">
-                </div>
-                <label for="request-city">Город:</label>
-                <input type="text" id="request-city" name="city">
-                <label for="request-address">Адрес:</label>
-                <input type="text" id="request-address" name="address">
-                <label for="request-amount">Сумма контракта:</label>
-                <input type="number" id="request-amount" name="amount" required>
-                <label for="request-deadline">Срок выполнения:</label>
-                <input type="date" id="request-deadline" name="deadline">
-                <label for="request-info">Дополнительная информация:</label>
-                <textarea id="request-info" name="info" rows="4"></textarea>
-                <label for="request-manager">Ответственный менеджер:</label>
-                <select id="request-manager" name="managerId" required></select>
-                <label for="request-engineer">Ответственный инженер:</label>
-                <select id="request-engineer" name="engineerId" required></select>
-                <button type="submit" class="primary-btn">Создать заявку</button>
-            </form>
+    <div id="page-content-container" class="main-content min-h-screen px-4 pb-8 space-y-4">
         </div>
-    </template>
-
-    <template id="template-edit-request">
-        <div class="details-view-container">
-            <div class="details-main-column">
-                <div class="comment-form-container">
-                    <form id="add-comment-form">
-                        <textarea name="comment-text" placeholder="Написать комментарий..." required></textarea>
-                        <button type="submit" class="primary-btn">Отправить</button>
-                    </form>
-                </div>
-                <div id="activity-feed" class="activity-log"></div>
-                <h3>Задачи по заявке</h3>
-                <div id="request-tasks" class="task-list"></div>
-                <form id="add-task-form" class="add-task-form">
-                    <input type="text" name="task-text" placeholder="Новая задача..." required>
-                    <button type="submit" class="primary-btn">Добавить</button>
-                </form>
-            </div>
-            <div class="details-side-column">
-                <h3>Заявка #<span id="edit-request-title-id"></span></h3>
-                <p>для <strong id="edit-request-title-client"></strong></p>
-                <form id="edit-request-form" class="info-block"></form>
-            </div>
-        </div>
-    </template>
-
-    <template id="template-create-department">
-        <div class="page-view">
-            <h3>Создание нового отдела</h3>
-            <form id="department-form" class="form-view" data-action="create" data-entity="department">
-                <label for="department-name">Название отдела:</label>
-                <input type="text" id="department-name" name="name" required>
-                <label for="parent-department">Головной отдел:</label>
-                <select id="parent-department" name="parentId"></select>
-                <button type="submit" class="primary-btn">Создать отдел</button>
-            </form>
-        </div>
-    </template>
-
-    <template id="template-create-employee">
-        <div class="page-view">
-            <h3>Добавление нового сотрудника</h3>
-            <form id="employee-form" class="form-view" data-action="create" data-entity="employee">
-                <label for="employee-name">ФИО:</label>
-                <input type="text" id="employee-name" name="name" required>
-                <label for="employee-role">Должность:</label>
-                <input type="text" id="employee-role" name="role" required>
-                <label for="employee-department">Отдел:</label>
-                <select id="employee-department" name="departmentId" required></select>
-                <button type="submit" class="primary-btn">Добавить сотрудника</button>
-            </form>
-        </div>
-    </template>
-
-    <template id="template-employee-details">
-        <div class="details-view-container">
-            <div class="details-main-column">
-                <h3>Закрепленные заявки</h3>
-                <div id="employee-requests-log" class="activity-log"></div>
-            </div>
-            <div class="details-side-column">
-                <h3>Информация о сотруднике</h3>
-                <form id="edit-employee-form" class="info-block"></form>
-            </div>
-        </div>
-    </template>
-
-    <template id="template-create-client">
-        <div class="page-view">
-            <h3>Добавление нового клиента</h3>
-            <form id="client-form" class="form-view" data-action="create" data-entity="client">
-                <label for="client-company-name">Название компании:</label>
-                <input type="text" id="client-company-name" name="companyName" required>
-                <label for="client-contact-person">ФИО контактного лица:</label>
-                <input type="text" id="client-contact-person" name="contactPerson">
-                <label for="client-contacts">Контакты:</label>
-                <input type="text" id="client-contacts" name="contacts">
-                <label for="client-region">Регион:</label>
-                <input type="text" id="client-region" name="region">
-                <label for="client-city">Город:</label>
-                <input type="text" id="client-city" name="city">
-                <label for="client-status">Статус:</label>
-                <select id="client-status" name="status" required></select>
-                <button type="submit" class="primary-btn">Добавить клиента</button>
-            </form>
-        </div>
-    </template>
-
-    <template id="template-client-details">
-        <div class="client-status-bar"></div>
-        <div class="details-view-container">
-            <div class="details-main-column">
-                <h3>Журнал действий</h3>
-                <div class="activity-log"></div>
-            </div>
-            <div class="details-side-column">
-                <h3>Информация о клиенте</h3>
-                <form id="edit-client-form" class="info-block"></form>
-            </div>
-        </div>
-    </template>
     
     <script type="module" src="./js/app.js"></script>
 </body>
