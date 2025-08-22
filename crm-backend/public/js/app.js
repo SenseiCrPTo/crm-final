@@ -1,14 +1,27 @@
-import * as api from './js/data-manager.js';
-import { renderPage, closePopup } from './js/ui-renderer.js';
+// =====================================
+// ИСПРАВЛЕНИЕ 1: Пути к модулям
+// =====================================
+// Убираем лишний 'js/' из путей, так как app.js уже находится в этой папке.
+// Заменяем closePopup на initNavigation, так как эта функция теперь отвечает за меню.
+import * as api from './data-manager.js';
+import { renderPage, initNavigation } from './ui-renderer.js';
 
+// Глобальные переменные для отслеживания текущего состояния
 let currentPage = 'dashboard';
-let currentOptions = {};
+let currentContextId = null;
 
+/**
+ * Загружает свежие данные с сервера и перерисовывает текущую страницу.
+ */
 async function reloadAndRender() {
     await api.loadData();
-    renderPage(currentPage, currentOptions);
+    renderPage(currentPage, currentContextId);
 }
 
+/**
+ * Обрабатывает отправку любой формы в приложении.
+ * @param {Event} event - Событие отправки формы.
+ */
 async function handleFormSubmit(event) {
     event.preventDefault();
     const form = event.target;
@@ -16,9 +29,12 @@ async function handleFormSubmit(event) {
     const entity = form.dataset.entity;
     const formData = Object.fromEntries(new FormData(form));
 
+    // Преобразуем ID в числа, если они есть
     for (const key in formData) {
         if (key.endsWith('Id') && formData[key]) {
             formData[key] = parseInt(formData[key], 10);
+        } else if (formData[key] === '') {
+            delete formData[key]; // Удаляем пустые поля, чтобы не отправлять их
         }
     }
 
@@ -29,15 +45,20 @@ async function handleFormSubmit(event) {
             await handleEdit(entity, formData);
         }
         
-        closePopup();
+        // После успешного действия перезагружаем данные и рендерим обновленную страницу
         await reloadAndRender();
 
     } catch (error) {
         console.error(`Ошибка при действии '${action}' для '${entity}':`, error);
-        alert('Произошла ошибка.');
+        alert('Произошла ошибка. Пожалуйста, проверьте консоль.');
     }
 }
 
+/**
+ * Обрабатывает создание новых сущностей (клиент, заявка и т.д.).
+ * @param {string} entity - Тип сущности.
+ * @param {object} formData - Данные из формы.
+ */
 async function handleCreate(entity, formData) {
     switch (entity) {
         case 'department':
@@ -65,10 +86,18 @@ async function handleCreate(entity, formData) {
             currentPage = 'departments';
             break;
     }
+    currentContextId = null; // Сбрасываем контекст после создания
 }
 
+/**
+ * Обрабатывает редактирование существующих сущностей.
+ * @param {string} entity - Тип сущности.
+ * @param {object} formData - Данные из формы.
+ */
 async function handleEdit(entity, formData) {
-    const id = parseInt(formData.id);
+    const id = parseInt(formData.id, 10);
+    delete formData.id; // Удаляем id из данных для отправки
+
     switch (entity) {
         case 'client':
             await api.updateClient(id, formData);
@@ -82,47 +111,66 @@ async function handleEdit(entity, formData) {
     }
 }
 
+/**
+ * Глобальный обработчик кликов для навигации и действий.
+ * @param {Event} event - Событие клика.
+ */
 function handleGlobalClick(event) {
     const target = event.target;
-    const link = target.closest('a, button');
+    // Ищем ближайший родительский элемент, который является ссылкой или кнопкой с data-атрибутом
+    const link = target.closest('a[data-page], button[data-action], div[data-action]');
 
     if (!link) return;
 
-    const { action, entity, page, id } = link.dataset;
+    const { page, action, entity, id } = link.dataset;
 
     if (page) {
         event.preventDefault();
         currentPage = page;
-        currentOptions = {};
-        renderPage(currentPage, currentOptions);
+        currentContextId = null;
+        renderPage(currentPage, currentContextId);
     } else if (action) {
         event.preventDefault();
         if (action === 'create') {
             currentPage = `create-${entity}`;
-            currentOptions = {};
-            renderPage(currentPage);
+            currentContextId = null;
         } else if (action === 'details') {
             currentPage = `${entity}-details`;
-            currentOptions = { [`${entity}Id`]: parseInt(id) };
-            renderPage(currentPage, currentOptions);
+            currentContextId = parseInt(id, 10);
         }
+        renderPage(currentPage, currentContextId);
     }
 }
 
+/**
+ * Инициализация приложения при загрузке страницы.
+ */
 async function init() {
-    window.updateRequestStatus = async (requestId, newStatus) => {
-        try {
-            await api.updateRequest(requestId, { status: newStatus });
-            await reloadAndRender();
-        } catch (error) {
-            console.error("Не удалось обновить статус заявки:", error);
-        }
-    };
+    // =====================================
+    // ИЗМЕНЕНИЕ 2: Логика для нового меню
+    // =====================================
+    // 1. Отрисовываем навигацию один раз при старте
+    initNavigation();
     
+    // 2. Навешиваем обработчики на кнопки мобильного меню
+    const menuButton = document.getElementById('menu-button');
+    const closeMenuButton = document.getElementById('close-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    function toggleMenu() {
+        mobileMenu.classList.toggle('hidden');
+    }
+
+    menuButton.addEventListener('click', toggleMenu);
+    closeMenuButton.addEventListener('click', toggleMenu);
+    
+    // 3. Добавляем глобальные обработчики
     document.addEventListener('submit', handleFormSubmit);
     document.addEventListener('click', handleGlobalClick);
     
+    // 4. Загружаем данные и отрисовываем первую страницу
     await reloadAndRender();
 }
 
+// Запускаем инициализацию после полной загрузки DOM
 document.addEventListener('DOMContentLoaded', init);
