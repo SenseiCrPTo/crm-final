@@ -9,15 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- ИЗМЕНЕНИЕ 1: Определяем правильный путь к папке 'public' ---
-const publicPath = path.join(__dirname, 'public');
-
-// --- ИЗМЕНЕНИЕ 2: Обслуживаем статические файлы из папки 'public' ---
-app.use(express.static(publicPath));
-
-// --- ИЗМЕНЕНИЕ 3 (ВАЖНО): Удален маршрут app.get('/') ---
-// Он конфликтовал с отдачей index.html. Теперь express.static сам обработает главную страницу.
-
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -36,32 +27,36 @@ const toCamelCase = (rows) => {
     });
 };
 
-// --- API МАРШРУТЫ (без изменений) ---
+// ==================================================================
+// ## 1. API ROUTES ##
+// All API-related routes are defined first to ensure they are matched
+// before the static file server or the catch-all route.
+// ==================================================================
 
-// GET (Получить списки)
+// GET (Get Lists)
 app.get('/api/:resource', async (req, res) => {
     const { resource } = req.params;
     const validResources = ['departments', 'employees', 'clients', 'requests'];
     if (!validResources.includes(resource)) {
-        return res.status(404).json({ error: 'Ресурс не найден' });
+        return res.status(404).json({ error: 'Resource not found' });
     }
     try {
-        const result = await pool.query(`SELECT * FROM ${resource}`);
+        const result = await pool.query(`SELECT * FROM ${resource} ORDER BY id ASC`);
         res.json(toCamelCase(result.rows));
     } catch (error) { 
-        console.error(`Ошибка при GET запросе к ${resource}:`, error);
+        console.error(`Error on GET request to ${resource}:`, error);
         res.status(500).json({ error: error.message }); 
     }
 });
 
-// POST (Создать)
+// POST (Create)
 app.post('/api/departments', async (req, res) => {
     try {
         const { name, parentId = null } = req.body;
         const result = await pool.query('INSERT INTO departments (name, parent_id) VALUES ($1, $2) RETURNING *', [name, parentId]);
         res.status(201).json(toCamelCase(result.rows)[0]);
     } catch (error) { 
-        console.error("Ошибка при создании отдела:", error);
+        console.error("Error creating department:", error);
         res.status(500).json({ error: error.message }); 
     }
 });
@@ -72,7 +67,7 @@ app.post('/api/employees', async (req, res) => {
         const result = await pool.query('INSERT INTO employees (name, role, department_id) VALUES ($1, $2, $3) RETURNING *', [name, role, departmentId]);
         res.status(201).json(toCamelCase(result.rows)[0]);
     } catch (error) { 
-        console.error("Ошибка при создании сотрудника:", error);
+        console.error("Error creating employee:", error);
         res.status(500).json({ error: error.message }); 
     }
 });
@@ -83,7 +78,7 @@ app.post('/api/clients', async (req, res) => {
         const result = await pool.query('INSERT INTO clients (company_name, contact_person, contacts, region, city, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [companyName, contactPerson, contacts, region, city, status]);
         res.status(201).json(toCamelCase(result.rows)[0]);
     } catch (error) { 
-        console.error("Ошибка при создании клиента:", error);
+        console.error("Error creating client:", error);
         res.status(500).json({ error: error.message }); 
     }
 });
@@ -98,17 +93,17 @@ app.post('/api/requests', async (req, res) => {
         );
         res.status(201).json(toCamelCase(result.rows)[0]);
     } catch (error) { 
-        console.error("Ошибка при создании заявки:", error);
+        console.error("Error creating request:", error);
         res.status(500).json({ error: error.message }); 
     }
 });
 
-// PATCH (Обновить)
+// PATCH (Update)
 app.patch('/api/:resource/:id', async (req, res) => {
     const { resource, id } = req.params;
     const validResources = ['clients', 'employees', 'requests', 'departments'];
     if (!validResources.includes(resource)) {
-        return res.status(404).json({ error: 'Ресурс не найден' });
+        return res.status(404).json({ error: 'Resource not found' });
     }
     try {
         const fields = [];
@@ -130,7 +125,7 @@ app.patch('/api/:resource/:id', async (req, res) => {
         }
 
         if (fields.length === 0) {
-            return res.status(400).json({ error: 'Нет полей для обновления' });
+            return res.status(400).json({ error: 'No fields to update' });
         }
         
         values.push(id);
@@ -138,24 +133,38 @@ app.patch('/api/:resource/:id', async (req, res) => {
         
         const result = await pool.query(query, values);
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Запись не найдена' });
+            return res.status(404).json({ error: 'Record not found' });
         }
         res.json(toCamelCase(result.rows)[0]);
     } catch (error) { 
-        console.error(`Ошибка при обновлении ${resource}:`, error);
+        console.error(`Error updating ${resource}:`, error);
         res.status(500).json({ error: error.message }); 
     }
 });
 
-// --- ИЗМЕНЕНИЕ 4: Обработчик для фронтенда теперь использует правильный путь 'publicPath' ---
+
+// ==================================================================
+// ## 2. STATIC FILE SERVING ##
+// The server serves the built frontend files from the 'client' folder.
+// This path goes up one level from /server and then into /client.
+// ==================================================================
+const clientPath = path.join(__dirname, '..', 'client');
+app.use(express.static(clientPath));
+
+// ==================================================================
+// ## 3. SPA CATCH-ALL ROUTE ##
+// This handles all other GET requests by sending the main index.html file.
+// This allows the frontend router to manage the URL.
+// ==================================================================
 app.get('*', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
+    res.sendFile(path.join(clientPath, 'index.html'));
 });
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Сервер успешно запущен на порту ${PORT}`);
+    console.log(`Server is running successfully on port ${PORT}`);
 });
 
-// Запускаем бота
+// Start the bot
 startBot();
