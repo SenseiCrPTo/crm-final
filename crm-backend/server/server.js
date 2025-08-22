@@ -43,9 +43,9 @@ app.get('/api/:resource', async (req, res) => {
     try {
         const result = await pool.query(`SELECT * FROM ${resource} ORDER BY id ASC`);
         res.json(toCamelCase(result.rows));
-    } catch (error) { 
+    } catch (error) {
         console.error(`Error on GET request to ${resource}:`, error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -55,9 +55,9 @@ app.post('/api/departments', async (req, res) => {
         const { name, parentId = null } = req.body;
         const result = await pool.query('INSERT INTO departments (name, parent_id) VALUES ($1, $2) RETURNING *', [name, parentId]);
         res.status(201).json(toCamelCase(result.rows)[0]);
-    } catch (error) { 
+    } catch (error) {
         console.error("Error creating department:", error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -66,9 +66,9 @@ app.post('/api/employees', async (req, res) => {
         const { name, role, departmentId = null } = req.body;
         const result = await pool.query('INSERT INTO employees (name, role, department_id) VALUES ($1, $2, $3) RETURNING *', [name, role, departmentId]);
         res.status(201).json(toCamelCase(result.rows)[0]);
-    } catch (error) { 
+    } catch (error) {
         console.error("Error creating employee:", error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -77,9 +77,9 @@ app.post('/api/clients', async (req, res) => {
         const { companyName, contactPerson, contacts = null, region = null, city = null, status = 'Лид' } = req.body;
         const result = await pool.query('INSERT INTO clients (company_name, contact_person, contacts, region, city, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [companyName, contactPerson, contacts, region, city, status]);
         res.status(201).json(toCamelCase(result.rows)[0]);
-    } catch (error) { 
+    } catch (error) {
         console.error("Error creating client:", error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -92,9 +92,9 @@ app.post('/api/requests', async (req, res) => {
             [ clientId, managerId, engineerId, city, address, amount, cost, deadline, info, status ]
         );
         res.status(201).json(toCamelCase(result.rows)[0]);
-    } catch (error) { 
+    } catch (error) {
         console.error("Error creating request:", error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -109,12 +109,12 @@ app.patch('/api/:resource/:id', async (req, res) => {
         const fields = [];
         const values = [];
         let queryCounter = 1;
-        
+
         for (const key in req.body) {
             if (key === 'id') continue;
             const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
             fields.push(`${snakeKey} = $${queryCounter++}`);
-            
+
             if (['comments', 'tasks', 'attachments', 'activityLog'].includes(key)) {
                 values.push(JSON.stringify(req.body[key]));
             } else if (key === 'deadline' && req.body[key] === '') {
@@ -127,37 +127,36 @@ app.patch('/api/:resource/:id', async (req, res) => {
         if (fields.length === 0) {
             return res.status(400).json({ error: 'No fields to update' });
         }
-        
+
         values.push(id);
         const query = `UPDATE ${resource} SET ${fields.join(', ')} WHERE id = $${queryCounter} RETURNING *`;
-        
+
         const result = await pool.query(query, values);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Record not found' });
         }
         res.json(toCamelCase(result.rows)[0]);
-    } catch (error) { 
+    } catch (error) {
         console.error(`Error updating ${resource}:`, error);
-        res.status(500).json({ error: error.message }); 
+        res.status(500).json({ error: error.message });
     }
 });
 
 
 // ==================================================================
 // ## 2. STATIC FILE SERVING ##
-// The server serves the built frontend files from the 'client' folder.
-// This path goes up one level from /server and then into /client.
+// !! ИЗМЕНЕНИЕ ЗДЕСЬ !!
+// The path now points to 'public' to match the server's expectation.
 // ==================================================================
-const clientPath = path.join(__dirname, '..', 'client');
-app.use(express.static(clientPath));
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
 
 // ==================================================================
 // ## 3. SPA CATCH-ALL ROUTE ##
 // This handles all other GET requests by sending the main index.html file.
-// This allows the frontend router to manage the URL.
 // ==================================================================
 app.get('*', (req, res) => {
-    res.sendFile(path.join(clientPath, 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 
