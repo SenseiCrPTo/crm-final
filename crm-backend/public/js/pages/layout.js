@@ -12,7 +12,7 @@ const navLinksData = [
 ];
 
 function generateNavLinks(linksData) {
-    return navLinksData.map(link => `
+    return linksData.map(link => `
         <a href="#" 
            class="nav-item flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white"
            data-page="${link.page}">
@@ -48,9 +48,7 @@ export function renderHeaderButtons(pageId) {
     
     let buttonsHtml = '';
     
-    // =======================================================
-    // ИЗМЕНЕНИЕ ЗДЕСЬ: Проверяем не pageId, а его "группу"
-    // =======================================================
+    // UPDATED LOGIC: Switch based on the page group (e.g., 'clients')
     const pageGroup = pageId.split('-')[0];
 
     switch (pageGroup) {
@@ -66,6 +64,8 @@ export function renderHeaderButtons(pageId) {
         case 'requests':
              buttonsHtml = `<button class="${btnClasses}" data-action="create" data-entity="request">Создать заявку</button>`;
             break;
+        default:
+            buttonsHtml = ''; // No buttons on other pages
     }
     headerButtonsContainer.innerHTML = buttonsHtml;
 }
