@@ -151,6 +151,7 @@ app.patch('/api/:resource/:id', async (req, res) => {
 const publicPath = path.join(__dirname, '..', 'public');
 app.use(express.static(publicPath));
 
+
 // ==================================================================
 // ## 3. SPA CATCH-ALL ROUTE ##
 // This handles all other GET requests by sending the main index.html file.
