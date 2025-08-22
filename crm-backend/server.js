@@ -29,11 +29,8 @@ const toCamelCase = (rows) => {
 
 // ==================================================================
 // ## 1. API ROUTES ##
-// All API-related routes are defined first to ensure they are matched
-// before the static file server or the catch-all route.
 // ==================================================================
-
-// GET (Get Lists)
+// ... (весь твой код для API остается без изменений)
 app.get('/api/:resource', async (req, res) => {
     const { resource } = req.params;
     const validResources = ['departments', 'employees', 'clients', 'requests'];
@@ -49,7 +46,7 @@ app.get('/api/:resource', async (req, res) => {
     }
 });
 
-// POST (Create)
+// ... все POST и PATCH запросы ...
 app.post('/api/departments', async (req, res) => {
     try {
         const { name, parentId = null } = req.body;
@@ -98,7 +95,6 @@ app.post('/api/requests', async (req, res) => {
     }
 });
 
-// PATCH (Update)
 app.patch('/api/:resource/:id', async (req, res) => {
     const { resource, id } = req.params;
     const validResources = ['clients', 'employees', 'requests', 'departments'];
@@ -142,19 +138,18 @@ app.patch('/api/:resource/:id', async (req, res) => {
     }
 });
 
-
 // ==================================================================
 // ## 2. STATIC FILE SERVING ##
 // !! ИЗМЕНЕНИЕ ЗДЕСЬ !!
-// The path now points to 'public' to match the server's expectation.
+// Мы используем абсолютный путь к папке public внутри контейнера.
+// Dockerfile копирует все в /app, поэтому полный путь будет /app/public
 // ==================================================================
-const publicPath = path.join(__dirname, '..', 'public');
+const publicPath = path.resolve(__dirname, 'public');
 app.use(express.static(publicPath));
 
 
 // ==================================================================
 // ## 3. SPA CATCH-ALL ROUTE ##
-// This handles all other GET requests by sending the main index.html file.
 // ==================================================================
 app.get('*', (req, res) => {
     res.sendFile(path.join(publicPath, 'index.html'));
