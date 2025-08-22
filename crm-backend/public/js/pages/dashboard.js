@@ -1,7 +1,4 @@
 export function renderDashboard(container, data) {
-    // =======================================================
-    // ИЗМЕНЕНИЕ ЗДЕСЬ: Считаем только успешные сделки
-    // =======================================================
     const successfulDealStatuses = ['Исполнение сделки', 'Контракт завершен', 'Ожидание оплаты', 'Оплата получена', 'Завершена'];
     const deals = data.requests.filter(r => successfulDealStatuses.includes(r.status));
     
@@ -10,6 +7,7 @@ export function renderDashboard(container, data) {
     const totalProfit = totalAmount - totalCost;
     const clientCount = data.clients.length;
     const currentUser = data.employees[0] || { name: 'Текущий пользователь' };
+    
     const myActiveRequests = data.requests.filter(r => !successfulDealStatuses.includes(r.status) && r.status !== 'Сделка проиграна').slice(0, 3);
 
     container.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6';

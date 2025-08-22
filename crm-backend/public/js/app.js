@@ -111,7 +111,7 @@ function handleGlobalClick(event) {
 }
 
 async function init() {
-    // Make the reload function globally available for Sortable.js
+    // Делаем функцию доступной глобально для Sortable.js
     window.reloadAndRender = reloadAndRender;
     
     initNavigation();

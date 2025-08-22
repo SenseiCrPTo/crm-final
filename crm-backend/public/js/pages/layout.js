@@ -1,5 +1,3 @@
-// public/js/pages/layout.js
-
 const mobileNavLinksContainer = document.getElementById('mobile-nav-links');
 const desktopNavLinksContainer = document.getElementById('desktop-nav-links');
 
@@ -47,8 +45,6 @@ export function renderHeaderButtons(pageId) {
     const btnClasses = "px-3 py-1.5 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 whitespace-nowrap";
     
     let buttonsHtml = '';
-    
-    // UPDATED LOGIC: Switch based on the page group (e.g., 'clients')
     const pageGroup = pageId.split('-')[0];
 
     switch (pageGroup) {
@@ -65,7 +61,7 @@ export function renderHeaderButtons(pageId) {
              buttonsHtml = `<button class="${btnClasses}" data-action="create" data-entity="request">Создать заявку</button>`;
             break;
         default:
-            buttonsHtml = ''; // No buttons on other pages
+            buttonsHtml = '';
     }
     headerButtonsContainer.innerHTML = buttonsHtml;
 }
