@@ -6,21 +6,23 @@ import * as api from '../data-manager.js';
  * @param {object} data - Объект с данными приложения.
  */
 export function renderRequestsPage(container, data) {
-    container.className = 'flex overflow-x-auto space-x-4 pb-4'; 
+    // ====================================================================
+    // ИЗМЕНЕНИЕ: Используем CSS Grid для адаптивности.
+    // Колонки будут в 1 столбец на мобильных, в 2 на средних экранах и т.д.
+    // ====================================================================
+    container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'; 
     
     data.cgmStages.forEach(stageName => {
         const column = document.createElement('div');
-        column.className = 'flex-shrink-0 w-80 bg-gray-900 rounded-xl p-4';
+        // Стили для колонки
+        column.className = 'bg-gray-900 rounded-xl p-4 flex flex-col';
         
         const requestsForStage = data.requests.filter(req => req.status === stageName);
         
         let cardsHtml = requestsForStage.map(req => {
             const client = data.clients.find(c => c.id === req.clientId) || {};
-            // ====================================================================
-            // ИЗМЕНЕНИЕ: Добавлены data-action="details" и data-entity="request"
-            // ====================================================================
             return `
-                <div class="bg-gray-800 rounded-lg p-4 mt-4 cursor-pointer hover:bg-gray-700" 
+                <div class="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700" 
                      data-action="details" data-entity="request" data-id="${req.id}">
                     <h4 class="font-semibold text-gray-100">${client.companyName || 'Неизвестный клиент'}</h4>
                     <p class="text-sm text-gray-400 mt-1">${Number(req.amount || 0).toLocaleString()} ₸</p>
@@ -33,8 +35,8 @@ export function renderRequestsPage(container, data) {
         }
 
         column.innerHTML = `
-            <h3 class="font-bold text-gray-100 text-center">${stageName}</h3>
-            <div class="kanban-cards space-y-3 mt-3" data-status="${stageName}">${cardsHtml}</div>
+            <h3 class="font-bold text-gray-100 text-center mb-3">${stageName}</h3>
+            <div class="kanban-cards space-y-3" data-status="${stageName}">${cardsHtml}</div>
         `;
         container.appendChild(column);
     });
@@ -73,7 +75,7 @@ export function renderCreateRequestPage(container, data) {
             
             <div>
                 <label for="request-client" class="block text-sm font-medium text-gray-300">Клиент</label>
-                <select id="request-client" name="clientId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-red-500 focus:ring-red-500">
+                <select id="request-client" name="clientId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-red-500 focus:ring-red-500" required>
                     <option value="">-- Выберите клиента --</option>
                     <option value="new">-- Создать нового --</option>
                     ${clientOptions}
@@ -105,7 +107,7 @@ export function renderCreateRequestPage(container, data) {
                 </select>
             </div>
 
-            <button type="submit" class="primary-btn">Создать заявку</button>
+            <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700">Создать заявку</button>
         </form>
     `;
 
@@ -134,7 +136,7 @@ export function renderEditRequestPage(container, requestId, data) {
     const client = data.clients.find(c => c.id == request.clientId) || {};
     document.getElementById('page-title').textContent = `Заявка #${request.id}: ${client.companyName || ''}`;
 
-    const clientOptions = data.clients.map(c => `<option value="${c.id}" ${c.id === request.clientId ? 'selected' : ''}>${c.companyName}</option>`).join('');
+    const clientOptions = data.clients.map(c => `<option value="${c.id}" ${c.id == request.clientId ? 'selected' : ''}>${c.companyName}</option>`).join('');
     const employeeOptions = data.employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
     
     container.innerHTML = `
@@ -143,53 +145,53 @@ export function renderEditRequestPage(container, requestId, data) {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="edit-request-client" class="block text-sm font-medium text-gray-300">Клиент</label>
-                    <select id="edit-request-client" name="clientId" required class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">${clientOptions}</select>
+                    <label class="block text-sm font-medium text-gray-300">Клиент</label>
+                    <select name="clientId" required class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">${clientOptions}</select>
                 </div>
                 <div>
-                    <label for="edit-request-status" class="block text-sm font-medium text-gray-300">Статус</label>
-                    <select id="edit-request-status" name="status" required class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Статус</label>
+                    <select name="status" required class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                         ${data.cgmStages.map(s => `<option value="${s}" ${s === request.status ? 'selected' : ''}>${s}</option>`).join('')}
                     </select>
                 </div>
                 <div>
-                    <label for="edit-request-city" class="block text-sm font-medium text-gray-300">Город</label>
-                    <input type="text" id="edit-request-city" name="city" value="${request.city || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Город</label>
+                    <input type="text" name="city" value="${request.city || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                 </div>
                 <div>
-                    <label for="edit-request-address" class="block text-sm font-medium text-gray-300">Адрес</label>
-                    <input type="text" id="edit-request-address" name="address" value="${request.address || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Адрес</label>
+                    <input type="text" name="address" value="${request.address || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                 </div>
                 <div>
-                    <label for="edit-request-manager" class="block text-sm font-medium text-gray-300">Отв. менеджер</label>
-                    <select id="edit-request-manager" name="managerId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Отв. менеджер</label>
+                    <select name="managerId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                         <option value="">-- Не назначен --</option>
-                        ${data.employees.map(e => `<option value="${e.id}" ${e.id === request.managerId ? 'selected' : ''}>${e.name}</option>`).join('')}
+                        ${data.employees.map(e => `<option value="${e.id}" ${e.id == request.managerId ? 'selected' : ''}>${e.name}</option>`).join('')}
                     </select>
                 </div>
                  <div>
-                    <label for="edit-request-engineer" class="block text-sm font-medium text-gray-300">Отв. инженер</label>
-                    <select id="edit-request-engineer" name="engineerId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Отв. инженер</label>
+                    <select name="engineerId" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                         <option value="">-- Не назначен --</option>
-                        ${data.employees.map(e => `<option value="${e.id}" ${e.id === request.engineerId ? 'selected' : ''}>${e.name}</option>`).join('')}
+                        ${data.employees.map(e => `<option value="${e.id}" ${e.id == request.engineerId ? 'selected' : ''}>${e.name}</option>`).join('')}
                     </select>
                 </div>
                 <div>
-                    <label for="edit-request-amount" class="block text-sm font-medium text-gray-300">Цена контракта</label>
-                    <input type="number" id="edit-request-amount" name="amount" value="${request.amount || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Цена контракта</label>
+                    <input type="number" name="amount" value="${request.amount || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                 </div>
                 <div>
-                    <label for="edit-request-cost" class="block text-sm font-medium text-gray-300">Себестоимость</label>
-                    <input type="number" id="edit-request-cost" name="cost" value="${request.cost || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
+                    <label class="block text-sm font-medium text-gray-300">Себестоимость</label>
+                    <input type="number" name="cost" value="${request.cost || ''}" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">
                 </div>
             </div>
 
             <div>
-                <label for="edit-request-info" class="block text-sm font-medium text-gray-300">Доп. информация</label>
-                <textarea id="edit-request-info" name="info" rows="5" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">${request.info || ''}</textarea>
+                <label class="block text-sm font-medium text-gray-300">Доп. информация</label>
+                <textarea name="info" rows="5" class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white">${request.info || ''}</textarea>
             </div>
             
-            <button type="submit" class="primary-btn">Сохранить изменения</button>
+            <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700">Сохранить изменения</button>
         </form>
     `;
 }

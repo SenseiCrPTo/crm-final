@@ -34,21 +34,19 @@ export function initNavigation() {
 
 export function updateActiveNav(pageId) {
     document.querySelectorAll('.nav-item').forEach(link => {
+        // Определяем "группу" страницы (например, для 'client-details' группой будет 'clients')
         const pageGroup = pageId.split('-')[0];
         const isActive = link.dataset.page === pageGroup;
         link.classList.toggle('active', isActive);
     });
 }
 
-// =======================================================
-// ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлена логика для отрисовки кнопок
-// =======================================================
 export function renderHeaderButtons(pageId) {
     const headerButtonsContainer = document.getElementById('header-buttons');
     if (!headerButtonsContainer) return;
     
-    // CSS классы для кнопок, чтобы не дублировать
-    const btnClasses = "px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800";
+    // Общие стили для кнопок
+    const btnClasses = "px-3 py-1.5 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 whitespace-nowrap";
     
     let buttonsHtml = '';
     switch (pageId) {
@@ -58,12 +56,14 @@ export function renderHeaderButtons(pageId) {
         case 'departments':
             buttonsHtml = `
                 <button class="${btnClasses}" data-action="create" data-entity="department">Добавить отдел</button>
-                <button class="${btnClasses}" data-action="create" data-entity="employee">Добавить сотрудника</button>
+                <button class="${btnClasses} ml-2" data-action="create" data-entity="employee">Добавить сотрудника</button>
             `;
             break;
         case 'requests':
              buttonsHtml = `<button class="${btnClasses}" data-action="create" data-entity="request">Создать заявку</button>`;
             break;
+        default:
+            buttonsHtml = ''; // На других страницах кнопок нет
     }
     headerButtonsContainer.innerHTML = buttonsHtml;
 }
