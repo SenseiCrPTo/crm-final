@@ -1,4 +1,3 @@
-// public/js/pages/requests.js
 import * as api from '../data-manager.js';
 
 /**
@@ -17,9 +16,12 @@ export function renderRequestsPage(container, data) {
         
         let cardsHtml = requestsForStage.map(req => {
             const client = data.clients.find(c => c.id === req.clientId) || {};
-            // Убедимся, что у карточки есть data-id для отслеживания
+            // ====================================================================
+            // ИЗМЕНЕНИЕ: Добавлены data-action="details" и data-entity="request"
+            // ====================================================================
             return `
-                <div class="bg-gray-800 rounded-lg p-4 mt-4 cursor-pointer hover:bg-gray-700" data-id="${req.id}">
+                <div class="bg-gray-800 rounded-lg p-4 mt-4 cursor-pointer hover:bg-gray-700" 
+                     data-action="details" data-entity="request" data-id="${req.id}">
                     <h4 class="font-semibold text-gray-100">${client.companyName || 'Неизвестный клиент'}</h4>
                     <p class="text-sm text-gray-400 mt-1">${Number(req.amount || 0).toLocaleString()} ₸</p>
                 </div>
@@ -30,7 +32,6 @@ export function renderRequestsPage(container, data) {
             cardsHtml = '<p class="text-sm text-gray-500 text-center mt-4">Пусто</p>';
         }
 
-        // Убедимся, что у колонки есть data-status для определения нового статуса
         column.innerHTML = `
             <h3 class="font-bold text-gray-100 text-center">${stageName}</h3>
             <div class="kanban-cards space-y-3 mt-3" data-status="${stageName}">${cardsHtml}</div>
@@ -38,33 +39,25 @@ export function renderRequestsPage(container, data) {
         container.appendChild(column);
     });
 
-    // =======================================================
-    // ДОБАВЛЕНО: Инициализация SortableJS для всех колонок
-    // =======================================================
     const kanbanColumns = container.querySelectorAll('.kanban-cards');
     kanbanColumns.forEach(column => {
         new Sortable(column, {
-            group: 'requests', // Это позволяет перетаскивать карточки между колонками
+            group: 'requests',
             animation: 150,
             onEnd: async (evt) => {
-                // Эта функция сработает, когда мы отпустим карточку
                 const requestId = parseInt(evt.item.dataset.id, 10);
                 const newStatus = evt.to.dataset.status;
-
-                // Отправляем запрос на сервер для обновления статуса заявки
                 try {
                     await api.updateRequest(requestId, { status: newStatus });
                     console.log(`Статус заявки #${requestId} обновлен на "${newStatus}"`);
                 } catch (error) {
                     console.error("Ошибка при обновлении статуса заявки:", error);
-                    // Здесь можно добавить логику для возврата карточки на место в случае ошибки
                 }
             }
         });
     });
 }
 
-// ... остальной код файла requests.js (renderCreateRequestPage, renderEditRequestPage) остается без изменений ...
 /**
  * Отрисовывает форму создания новой заявки.
  * @param {HTMLElement} container - Контейнер для рендеринга.
@@ -116,7 +109,6 @@ export function renderCreateRequestPage(container, data) {
         </form>
     `;
 
-    // Логика для отображения полей нового клиента
     const clientSelect = container.querySelector('#request-client');
     const newClientFields = container.querySelector('#new-client-fields');
     clientSelect.addEventListener('change', () => {
