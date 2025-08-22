@@ -8,6 +8,7 @@ async function reloadAndRender() {
     await api.loadData();
     renderPage(currentPage, currentContextId);
 }
+window.reloadAndRender = reloadAndRender;
 
 async function handleFormSubmit(event) {
     event.preventDefault();
@@ -56,6 +57,10 @@ async function handleCreate(entity, formData) {
                 });
                 formData.clientId = newClient.id;
             }
+            // =======================================================
+            // ИЗМЕНЕНИЕ ЗДЕСЬ: Устанавливаем статус по умолчанию
+            // =======================================================
+            formData.status = 'Новая заявка';
             await api.createRequest(formData);
             currentPage = 'requests';
             break;
@@ -108,7 +113,6 @@ function handleGlobalClick(event) {
 }
 
 async function init() {
-    window.reloadAndRender = reloadAndRender;
     initNavigation();
     
     const menuButton = document.getElementById('menu-button');

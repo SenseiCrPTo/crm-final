@@ -46,8 +46,12 @@ export function renderDashboard(container, data) {
             <div class="space-y-4">
                 ${myActiveRequests.length > 0 ? myActiveRequests.map(req => {
                     const client = data.clients.find(c => c.id === req.clientId) || {};
+                    // =======================================================
+                    // ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлены data-action и data-entity
+                    // =======================================================
                     return `
-                        <div class="p-3 rounded-lg hover:bg-gray-700 cursor-pointer" data-action="details" data-entity="request" data-id="${req.id}">
+                        <div class="p-3 rounded-lg hover:bg-gray-700 cursor-pointer" 
+                             data-action="details" data-entity="request" data-id="${req.id}">
                             <h3 class="text-lg font-semibold text-gray-100">Заявка #${req.id}</h3>
                             <p class="text-sm text-gray-400 mt-1">${client.companyName || 'Клиент'} · ${req.status}</p>
                         </div>
