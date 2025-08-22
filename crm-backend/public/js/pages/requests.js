@@ -6,15 +6,10 @@ import * as api from '../data-manager.js';
  * @param {object} data - Объект с данными приложения.
  */
 export function renderRequestsPage(container, data) {
-    // ====================================================================
-    // ИЗМЕНЕНИЕ: Используем CSS Grid для адаптивности.
-    // Колонки будут в 1 столбец на мобильных, в 2 на средних экранах и т.д.
-    // ====================================================================
     container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'; 
     
     data.cgmStages.forEach(stageName => {
         const column = document.createElement('div');
-        // Стили для колонки
         column.className = 'bg-gray-900 rounded-xl p-4 flex flex-col';
         
         const requestsForStage = data.requests.filter(req => req.status === stageName);
@@ -51,7 +46,12 @@ export function renderRequestsPage(container, data) {
                 const newStatus = evt.to.dataset.status;
                 try {
                     await api.updateRequest(requestId, { status: newStatus });
-                    console.log(`Статус заявки #${requestId} обновлен на "${newStatus}"`);
+                    // =======================================================
+                    // ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем полную перерисовку
+                    // =======================================================
+                    if (window.reloadAndRender) {
+                        await window.reloadAndRender();
+                    }
                 } catch (error) {
                     console.error("Ошибка при обновлении статуса заявки:", error);
                 }
