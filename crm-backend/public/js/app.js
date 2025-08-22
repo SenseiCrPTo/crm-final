@@ -70,7 +70,6 @@ async function handleCreate(entity, formData) {
 async function handleEdit(entity, formData) {
     const id = parseInt(formData.id, 10);
     delete formData.id;
-
     switch (entity) {
         case 'client':
             await api.updateClient(id, formData);
@@ -87,18 +86,16 @@ async function handleEdit(entity, formData) {
 function handleGlobalClick(event) {
     const target = event.target;
     const link = target.closest('a[data-page], button[data-action], div[data-action]');
-
     if (!link) return;
 
+    event.preventDefault();
     const { page, action, entity, id } = link.dataset;
 
     if (page) {
-        event.preventDefault();
         currentPage = page;
         currentContextId = null;
         renderPage(currentPage, currentContextId);
     } else if (action) {
-        event.preventDefault();
         if (action === 'create') {
             currentPage = `create-${entity}`;
             currentContextId = null;
@@ -111,9 +108,7 @@ function handleGlobalClick(event) {
 }
 
 async function init() {
-    // Делаем функцию доступной глобально для Sortable.js
     window.reloadAndRender = reloadAndRender;
-    
     initNavigation();
     
     const menuButton = document.getElementById('menu-button');
