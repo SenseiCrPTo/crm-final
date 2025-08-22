@@ -1,8 +1,7 @@
-// js/pages/layout.js
+// public/js/pages/layout.js
 
 const mobileNavLinksContainer = document.getElementById('mobile-nav-links');
 const desktopNavLinksContainer = document.getElementById('desktop-nav-links');
-const headerButtonsContainer = document.getElementById('header-buttons'); // Предполагается, что такой id есть в шапке для кнопок
 
 const navLinksData = [
     { page: 'dashboard', text: 'Главная', icon: 'dashboard' },
@@ -12,11 +11,6 @@ const navLinksData = [
     { page: 'documents', text: 'Документы', icon: 'folder' },
 ];
 
-/**
- * Генерирует HTML для навигационных ссылок.
- * @param {Array} linksData - Массив объектов с данными о ссылках.
- * @returns {string} - HTML-строка.
- */
 function generateNavLinks(linksData) {
     return linksData.map(link => `
         <a href="#" 
@@ -28,9 +22,6 @@ function generateNavLinks(linksData) {
     `).join('');
 }
 
-/**
- * Инициализирует и отрисовывает оба навигационных меню (мобильное и десктопное).
- */
 export function initNavigation() {
     const navHtml = generateNavLinks(navLinksData);
     if (mobileNavLinksContainer) {
@@ -41,37 +32,37 @@ export function initNavigation() {
     }
 }
 
-/**
- * Обновляет активное состояние ссылок в обоих меню.
- * @param {string} pageId - ID текущей активной страницы.
- */
 export function updateActiveNav(pageId) {
     document.querySelectorAll('.nav-item').forEach(link => {
-        const isActive = link.dataset.page === pageId || (pageId.includes(link.dataset.page) && link.dataset.page !== 'dashboard');
+        const pageGroup = pageId.split('-')[0];
+        const isActive = link.dataset.page === pageGroup;
         link.classList.toggle('active', isActive);
     });
 }
 
-/**
- * Отрисовывает кнопки в шапке в зависимости от страницы.
- * @param {string} pageId - ID текущей страницы.
- */
+// =======================================================
+// ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлена логика для отрисовки кнопок
+// =======================================================
 export function renderHeaderButtons(pageId) {
+    const headerButtonsContainer = document.getElementById('header-buttons');
     if (!headerButtonsContainer) return;
+    
+    // CSS классы для кнопок, чтобы не дублировать
+    const btnClasses = "px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800";
     
     let buttonsHtml = '';
     switch (pageId) {
         case 'clients':
-            buttonsHtml = `<button class="primary-btn" data-action="create" data-entity="client">Добавить клиента</button>`;
+            buttonsHtml = `<button class="${btnClasses}" data-action="create" data-entity="client">Добавить клиента</button>`;
             break;
         case 'departments':
             buttonsHtml = `
-                <button class="primary-btn" data-action="create" data-entity="department">Добавить отдел</button>
-                <button class="primary-btn" data-action="create" data-entity="employee">Добавить сотрудника</button>
+                <button class="${btnClasses}" data-action="create" data-entity="department">Добавить отдел</button>
+                <button class="${btnClasses}" data-action="create" data-entity="employee">Добавить сотрудника</button>
             `;
             break;
         case 'requests':
-             buttonsHtml = `<button class="primary-btn" data-action="create" data-entity="request">Создать заявку</button>`;
+             buttonsHtml = `<button class="${btnClasses}" data-action="create" data-entity="request">Создать заявку</button>`;
             break;
     }
     headerButtonsContainer.innerHTML = buttonsHtml;

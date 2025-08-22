@@ -1,10 +1,5 @@
-// js/pages/dashboard.js
+// public/js/pages/dashboard.js
 
-/**
- * Отрисовывает дашборд с основной информацией.
- * @param {HTMLElement} container - Контейнер для рендеринга.
- * @param {object} data - Объект с данными приложения (requests, clients, employees).
- */
 export function renderDashboard(container, data) {
     const deals = data.requests.filter(r => r.status !== 'Сделка проиграна');
     const totalAmount = deals.reduce((sum, deal) => sum + (Number(deal.amount) || 0), 0);
